@@ -2,10 +2,12 @@
  * Pure physics step: calculates next state from input and dt.
  * @param {typeof currentShip} shipState
  * @param {ReturnType<typeof input.getState>} keys
- * @param {number} dt
+ * @param {number} dt - delta time in seconds
  * @param {number} alpha - Interpolation ratio between [0, 1)
+ * @param {{ width: number, height: number }} bounds - Canvas dimensions for boundary wrap
+ * @returns {typeof currentShip} - New ship state after applying physics
  */
-export function integrate(shipState, keys, dt) {
+export function integrate(shipState, keys, dt, bounds) {
     // * Left for future: implement turning and thrusting physics
     // const position = shipState.x;
     // if (keys.turnLeft) position -= shipState.turnSpeed * dt;
@@ -35,10 +37,12 @@ export function integrate(shipState, keys, dt) {
     }
 
     // Toroidal screen boundary wrap
-    if (x < 0) x = renderCtx.width;
-    if (x > renderCtx.width) x = 0;
-    if (y < 0) y = renderCtx.height;
-    if (y > renderCtx.height) y = 0;
+    if (bounds) {
+        if (x < 0) x = bounds.width;
+        if (x > bounds.width) x = 0;
+        if (y < 0) y = bounds.height;
+        if (y > bounds.height) y = 0;
+    }
 
     return {
         ...shipState,

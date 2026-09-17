@@ -23,7 +23,8 @@ const loop = createLoop({
     update(dt) {
         const keys = input.getState();
         previousShip = currentShip;
-        currentShip = updateShipState(currentShip, keys, dt);
+        const bounds = { width: renderCtx.width, height: renderCtx.height };
+        currentShip = updateShipState(currentShip, keys, dt, bounds);
     },
     render(alpha, metrics) {
         clearCanvas(renderCtx.ctx, renderCtx.width, renderCtx.height);
@@ -47,12 +48,11 @@ const loop = createLoop({
 // Start loop engine
 loop.start();
 
-const currentTime = performance.now();
-let prevTime = currentTime;
-while (currentTime - prevTime >= 1000) {
-    prevTime = performance.now();
-    console.log(`Testing queue: ${prevTime}`);
-}
+// * For testing purposes
+// const currentTime = performance.now();
+// while (performance.now() - currentTime < 1000) {
+//     // Do nothing, just wait
+// }
 
 // Auto-adjust when resizing browser window
 window.addEventListener("resize", () => {
