@@ -28,3 +28,5 @@ dist-ssr
 .env.local
 .dist/
 dist/
+todo-*.md
+todo_*.md
