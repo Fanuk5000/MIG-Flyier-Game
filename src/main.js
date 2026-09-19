@@ -2,7 +2,7 @@ import { createInput } from "./core/input.js";
 import { createLoop } from "./core/loop.js";
 import { updateShipState } from "./physics/ship.js";
 import { clearCanvas, drawHUD, setupCanvas } from "./render/canvas.js";
-import { renderVehicle } from "./render/vehicle.js";
+import { renderMIG } from "./render/vehicle.js";
 import "./style.css";
 
 const canvas = document.querySelector("#game-canvas");
@@ -20,7 +20,7 @@ let currentShip = {
 let previousShip = { ...currentShip };
 
 const loop = createLoop({
-    update(dt) {
+    simulate(dt) {
         const keys = input.getState();
         previousShip = currentShip;
         const bounds = { width: renderCtx.width, height: renderCtx.height };
@@ -34,7 +34,7 @@ const loop = createLoop({
         const renderX = previousShip.x * (1 - alpha) + currentShip.x * alpha;
         const renderY = previousShip.y * (1 - alpha) + currentShip.y * alpha;
 
-        renderVehicle(
+        renderMIG(
             renderCtx.ctx,
             renderX,
             renderY,
@@ -49,9 +49,12 @@ const loop = createLoop({
 loop.start();
 
 // * For testing purposes
-// const currentTime = performance.now();
-// while (performance.now() - currentTime < 1000) {
-//     // Do nothing, just wait
+// while (true) {
+//     const currentTime = performance.now();
+//     while (performance.now() - currentTime < 1000) {
+//         // Do nothing, just wait
+//         const a = 0;
+//     }
 // }
 
 // Auto-adjust when resizing browser window

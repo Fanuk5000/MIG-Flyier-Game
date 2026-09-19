@@ -6,7 +6,7 @@
  * @param {number} angle - Orientation in degrees (0 = pointing UP)
  * @param {boolean} isThrusting - Whether afterburner is active
  */
-export function renderVehicle(ctx, x, y, angle, isThrusting = false) {
+export function renderMIG(ctx, x, y, angle, isThrusting = false) {
     ctx.save();
     ctx.translate(x, y);
     const radian = angle * (Math.PI / 180); // angle to radian conversion
