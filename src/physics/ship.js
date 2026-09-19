@@ -36,6 +36,8 @@ export function integrate(ship, input, dt) {
     if (input.turnRight) {
         angle += turnRate * dt;
     }
+    // Normalize angle to [0, 360)
+    angle = (angle % 360 + 360) % 360;
 
     // 2. Thrust acceleration along heading
     const isThrusting = Boolean(input.moveForward);

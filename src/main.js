@@ -3,6 +3,7 @@ import { createLoop } from "./core/loop.js";
 import { wrapArena } from "./physics/arena.js";
 import { createShip, updateShipState } from "./physics/ship.js";
 import { clearCanvas, drawHUD, setupCanvas } from "./render/canvas.js";
+import { lerp, lerpAngle } from "./render/math.js";
 import { renderMIG } from "./render/vehicle.js";
 import "./style.css";
 
@@ -31,15 +32,20 @@ const loop = createLoop({
     render(alpha, metrics) {
         clearCanvas(renderCtx.ctx, renderCtx.width, renderCtx.height);
 
-        // Interpolate rendered position
-        const renderX = previousShip.x * (1 - alpha) + currentShip.x * alpha;
-        const renderY = previousShip.y * (1 - alpha) + currentShip.y * alpha;
+        // Smoothly interpolate position and angle along shortest path
+        const renderX = lerp(previousShip.x, currentShip.x, alpha);
+        const renderY = lerp(previousShip.y, currentShip.y, alpha);
+        const renderAngle = lerpAngle(
+            previousShip.angle,
+            currentShip.angle,
+            alpha,
+        );
 
         renderMIG(
             renderCtx.ctx,
             renderX,
             renderY,
-            currentShip.angle,
+            renderAngle,
             currentShip.thrust,
         );
         drawHUD(renderCtx.ctx, metrics);
