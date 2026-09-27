@@ -5,8 +5,7 @@ import { Vector2 } from "./vector.js";
  * Manages identity, spatial properties, and base physics integration.
  */
 export class Entity {
-    static #nextId = 1;
-    #id = Entity.#nextId++;
+    #id = crypto.randomUUID();
 
     /**
      * @param {Object} [options={}]
@@ -43,6 +42,7 @@ export class Entity {
     }
 
     set x(value) {
+        this.#check_number(value, "x");
         this.pos = new Vector2(value, this.pos.y);
     }
 
@@ -51,6 +51,7 @@ export class Entity {
     }
 
     set y(value) {
+        this.#check_number(value, "y");
         this.pos = new Vector2(this.pos.x, value);
     }
 
@@ -59,6 +60,7 @@ export class Entity {
     }
 
     set vx(value) {
+        this.#check_number(value, "vx");
         this.vel = new Vector2(value, this.vel.y);
     }
 
@@ -67,6 +69,7 @@ export class Entity {
     }
 
     set vy(value) {
+        this.#check_number(value, "vy");
         this.vel = new Vector2(this.vel.x, value);
     }
 
@@ -75,6 +78,13 @@ export class Entity {
      * @param {number} dt - Delta time in seconds
      */
     update(dt) {
+        this.#check_number(dt, "dt");
         this.pos = this.pos.add(this.vel.scale(dt));
+    }
+
+    #check_number(num, name = "argument") {
+        if (typeof num !== "number") {
+            throw new TypeError(`Argument ${name} must be a number`);
+        }
     }
 }
