@@ -13,12 +13,20 @@ const input = createInput();
 
 // Initial ship state from single source of truth
 let currentShip = createShip(renderCtx.width / 2, renderCtx.height / 2);
-let previousShip = { ...currentShip };
+let previousShip = {
+    x: currentShip.x,
+    y: currentShip.y,
+    angle: currentShip.angle,
+};
 
 const loop = createLoop({
     simulate(dt) {
         const keys = input.getState();
-        previousShip = currentShip;
+        previousShip = {
+            x: currentShip.x,
+            y: currentShip.y,
+            angle: currentShip.angle,
+        };
 
         // 1. Move ship in space (pure physics)
         currentShip = updateShipState(currentShip, keys, dt);
