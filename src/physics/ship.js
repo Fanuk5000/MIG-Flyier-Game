@@ -1,80 +1,125 @@
+import { Entity } from "./entity.js";
+import { Vector2 } from "./vector.js";
+
 /**
- * Factory creating initial ship state with default physical parameters.
+ * Player-controlled ship entity.
+ * Demonstrates single-level class inheritance (Ship extends Entity).
+ */
+export class Ship extends Entity {
+    #hp = 100;
+    #maxHp = 100;
+
+    /**
+     * @param {Object} [options={}]
+     * @param {Vector2} [options.pos=new Vector2(0, 0)]
+     * @param {Vector2} [options.vel=new Vector2(0, 0)]
+     * @param {number} [options.angle=0]
+     * @param {number} [options.radius=16]
+     * @param {number} [options.thrustPower=450]
+     * @param {number} [options.turnRate=180]
+     * @param {number} [options.drag=0.8]
+     * @param {number} [options.maxSpeed=400]
+     */
+    constructor({
+        pos = new Vector2(0, 0),
+        vel = new Vector2(0, 0),
+        angle = 0,
+        radius = 16,
+        thrustPower = 450,
+        turnRate = 180,
+        drag = 0.8,
+        maxSpeed = 400,
+    } = {}) {
+        super({ pos, vel, angle, radius, kind: "ship" });
+        this.thrust = false;
+        this.thrustPower = thrustPower;
+        this.turnRate = turnRate;
+        this.drag = drag;
+        this.maxSpeed = maxSpeed;
+    }
+
+    get hp() {
+        return this.#hp;
+    }
+
+    /**
+     * Applies damage to ship HP.
+     * @param {number} amount
+     */
+    takeDamage(amount) {
+        this.#hp = Math.max(0, this.#hp - amount);
+        if (this.#hp === 0) {
+            this.alive = false;
+        }
+    }
+
+    /**
+     * Heals or resets ship HP.
+     * @param {number} [amount=100]
+     */
+    heal(amount = 100) {
+        this.#hp = Math.min(this.#maxHp, this.#hp + amount);
+        if (this.alive === false) this.alive = true;
+    }
+
+    /**
+     * Updates ship steering, acceleration, damping, and position.
+     * @param {number} dt - Delta time in seconds
+     * @param {Object} [input={}] - Input state
+     */
+    update(dt, input = {}) {
+        // 1. Angular steering
+        if (input.turnLeft) {
+            this.angle -= this.turnRate * dt;
+        }
+        if (input.turnRight) {
+            this.angle += this.turnRate * dt;
+        }
+        this.angle = ((this.angle % 360) + 360) % 360;
+
+        // 2. Thrust acceleration along heading
+        this.thrust = Boolean(input.moveForward);
+        if (this.thrust) {
+            const accel = Vector2.fromHeadingDegrees(
+                this.angle,
+                this.thrustPower,
+            );
+            this.vel = this.vel.add(accel.scale(dt));
+        }
+
+        // 3. Drag damping
+        const damping = Math.max(0, 1 - this.drag * dt);
+        this.vel = this.vel.scale(damping);
+
+        // 4. Speed clamping
+        const speed = this.vel.length();
+        if (speed > this.maxSpeed && speed > 0) {
+            this.vel = this.vel.scale(this.maxSpeed / speed);
+        }
+
+        // 5. Integrate position via base Entity
+        super.update(dt);
+    }
+}
+
+/**
+ * Factory helper for backwards compatibility.
  * @param {number} [x=0]
  * @param {number} [y=0]
+ * @returns {Ship}
  */
 export function createShip(x = 0, y = 0) {
-    return {
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        angle: 0,
-        thrust: false,
-        thrustPower: 450, // Acceleration in pixels/s^2
-        turnRate: 180, // Rotation in degrees/s
-        drag: 0.8, // Velocity damping
-        maxSpeed: 400, // Speed clamp in pixels/s
-    };
+    return new Ship({ pos: new Vector2(x, y) });
 }
 
 /**
- * Pure physics step: applies rotation, thrust, drag, speed clamp, and movement.
- * Pure function of (ship, input, dt). Zero DOM, zero screen bounds.
- * @param {ReturnType<typeof createShip>} ship
- * @param {Object} input - Key state from createInput()
- * @param {number} dt - Delta time in seconds
- * @returns {ReturnType<typeof createShip>} New ship state
+ * Compatibility function for legacy functional update callers.
+ * @param {Ship} ship
+ * @param {Object} input
+ * @param {number} dt
+ * @returns {Ship}
  */
-export function integrate(ship, input, dt) {
-    let { x, y, vx, vy, angle, thrustPower, turnRate, drag, maxSpeed } = ship;
-
-    // 1. Angular steering (in degrees)
-    if (input.turnLeft) {
-        angle -= turnRate * dt;
-    }
-    if (input.turnRight) {
-        angle += turnRate * dt;
-    }
-    // Normalize angle to [0, 360)
-    angle = (angle % 360 + 360) % 360;
-
-    // 2. Thrust acceleration along heading
-    const isThrusting = Boolean(input.moveForward);
-    if (isThrusting) {
-        const rad = angle * (Math.PI / 180);
-        const ax = Math.sin(rad) * thrustPower;
-        const ay = -Math.cos(rad) * thrustPower;
-        vx += ax * dt;
-        vy += ay * dt;
-    }
-
-    // 3. Drag damping (air resistance)
-    const damping = Math.max(0, 1 - drag * dt);
-    vx *= damping;
-    vy *= damping;
-
-    // 4. Speed clamping
-    const currentSpeed = Math.hypot(vx, vy);
-    if (currentSpeed > maxSpeed && currentSpeed > 0) {
-        const scale = maxSpeed / currentSpeed;
-        vx *= scale;
-        vy *= scale;
-    }
-
-    // 5. Position integration
-    x += vx * dt;
-    y += vy * dt;
-
-    return {
-        ...ship,
-        x,
-        y,
-        vx,
-        vy,
-        angle,
-        thrust: isThrusting,
-    };
+export function updateShipState(ship, input, dt) {
+    ship.update(dt, input);
+    return ship;
 }
-
-export const updateShipState = integrate;
