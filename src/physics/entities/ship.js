@@ -1,5 +1,6 @@
+import { Vector2 } from "../vector.js";
+import { Bullet } from "./bullet.js";
 import { Entity } from "./entity.js";
-import { Vector2 } from "./vector.js";
 
 /**
  * Player-controlled ship entity.
@@ -60,6 +61,25 @@ export class Ship extends Entity {
     heal(amount = 100) {
         this.#hp = Math.min(this.#maxHp, this.#hp + amount);
         if (this.alive === false) this.alive = true;
+    }
+
+    /**
+     * Spawns a bullet from the ship's nose with inherited velocity.
+     * NOTE: Relies on `this`. Passing this method unbound as a callback loses `this`.
+     * @param {number} [bulletSpeed=600]
+     * @returns {Bullet}
+     */
+    fire(bulletSpeed = 600) {
+        const heading = Vector2.fromHeadingDegrees(this.angle);
+        const nosePos = this.pos.add(heading.scale(this.radius + 6));
+        const bulletVel = this.vel.add(heading.scale(bulletSpeed));
+
+        return new Bullet({
+            pos: nosePos,
+            vel: bulletVel,
+            angle: this.angle,
+            ownerId: this.id,
+        });
     }
 
     /**
