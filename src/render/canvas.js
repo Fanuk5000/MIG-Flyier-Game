@@ -33,7 +33,7 @@ export function clearCanvas(ctx, width, height) {
 }
 
 export function drawHUD(ctx, metrics) {
-    const { stepsPerSec, fps, frameTimeMs, mode, score, hp } = metrics;
+    const { stepsPerSec, fps, frameTimeMs, mode, score, hp, shield } = metrics;
     ctx.save();
     ctx.font = "16px monospace";
     ctx.fillStyle = "#ffffff";
@@ -41,19 +41,28 @@ export function drawHUD(ctx, metrics) {
     ctx.fillText(`FPS: ${fps.toFixed(1)}`, 10, 40);
     ctx.fillText(`Frame time: ${frameTimeMs.toFixed(2)} ms`, 10, 60);
 
+    let hudY = 85;
     if (score !== undefined) {
         ctx.fillStyle = "#facc15";
-        ctx.fillText(`Score: ${score}`, 10, 85);
+        ctx.fillText(`Score: ${score}`, 10, hudY);
+        hudY += 20;
     }
 
     if (hp !== undefined) {
         ctx.fillStyle = hp > 30 ? "#4ade80" : "#ef4444";
-        ctx.fillText(`HP: ${hp}`, 10, 105);
+        ctx.fillText(`HP: ${hp}`, 10, hudY);
+        hudY += 20;
+    }
+
+    if (shield !== undefined) {
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillText(`Shield: ${shield}`, 10, hudY);
+        hudY += 20;
     }
 
     if (mode) {
         ctx.fillStyle = "#38bdf8";
-        ctx.fillText(`Mode: ${mode}`, 10, 125);
+        ctx.fillText(`Mode: ${mode}`, 10, hudY);
     }
     ctx.restore();
 }

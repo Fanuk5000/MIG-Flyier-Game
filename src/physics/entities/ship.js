@@ -9,6 +9,8 @@ import { Entity } from "./entity.js";
 export class Ship extends Entity {
     #hp = 100;
     #maxHp = 100;
+    #shield = 0;
+    #maxShield = 100;
 
     /**
      * @param {Object} [options={}]
@@ -43,15 +45,35 @@ export class Ship extends Entity {
         return this.#hp;
     }
 
+    get shield() {
+        return this.#shield;
+    }
+
     /**
-     * Applies damage to ship HP.
+     * Applies damage to ship. Shield absorbs damage first, remainder reduces HP.
      * @param {number} amount
      */
     takeDamage(amount) {
-        this.#hp = Math.max(0, this.#hp - amount);
-        if (this.#hp === 0) {
-            this.alive = false;
+        if (this.#shield > 0) {
+            const absorbed = Math.min(this.#shield, amount);
+            this.#shield -= absorbed;
+            amount -= absorbed;
         }
+
+        if (amount > 0) {
+            this.#hp = Math.max(0, this.#hp - amount);
+            if (this.#hp === 0) {
+                this.alive = false;
+            }
+        }
+    }
+
+    /**
+     * Adds energy to defensive shield.
+     * @param {number} [amount=50]
+     */
+    addShield(amount = 50) {
+        this.#shield = Math.min(this.#maxShield, this.#shield + amount);
     }
 
     /**
@@ -60,6 +82,7 @@ export class Ship extends Entity {
      */
     heal(amount = 100) {
         this.#hp = Math.min(this.#maxHp, this.#hp + amount);
+        this.#shield = 0; // reset shield on complete repair/respawn
         if (this.alive === false) this.alive = true;
     }
 

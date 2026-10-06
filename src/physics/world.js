@@ -2,6 +2,7 @@ import { wrapArena } from "./arena.js";
 import { findCollisions } from "./collision.js";
 import { Asteroid } from "./entities/asteroid.js";
 import { spawnExplosion } from "./entities/explosion.js";
+import { Pickup } from "./entities/pickup.js";
 import { Vector2 } from "./vector.js";
 
 export class World {
@@ -139,6 +140,13 @@ export class World {
             } else if (b.kind === "ship" && a.kind === "asteroid") {
                 this.#shipCrashAsteroid(b, a);
             }
+
+            // Ship vs Pickup
+            else if (a.kind === "ship" && b.kind === "pickup") {
+                this.#shipCollectPickup(a, b);
+            } else if (b.kind === "ship" && a.kind === "pickup") {
+                this.#shipCollectPickup(b, a);
+            }
         }
     }
 
@@ -149,6 +157,12 @@ export class World {
         if (!asteroid.alive) {
             this.#score += 100;
             spawnExplosion(this, asteroid.pos, 16, "#94a3b8");
+
+            // 35% chance to drop bonus Pickup on destruction
+            if (Math.random() < 0.35) {
+                const type = Math.random() < 0.5 ? "shield" : "repair";
+                this.spawn(new Pickup({ pos: asteroid.pos, type }));
+            }
         } else {
             spawnExplosion(this, bullet.pos, 4, "#facc15");
         }
@@ -181,6 +195,14 @@ export class World {
             this.#score += 50;
             spawnExplosion(this, asteroid.pos, 16, "#94a3b8");
         }
+    }
+
+    #shipCollectPickup(ship, pickup) {
+        pickup.applyTo(ship);
+        pickup.alive = false;
+        this.#score += 25;
+        const color = pickup.type === "shield" ? "#38bdf8" : "#34d399";
+        spawnExplosion(this, pickup.pos, 10, color);
     }
 
     #handleRespawn(dt, width = 800, height = 600) {

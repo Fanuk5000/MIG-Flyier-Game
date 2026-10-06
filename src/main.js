@@ -1,5 +1,6 @@
 import { createInput } from "./core/input.js";
 import { createLoop } from "./core/loop.js";
+import { Pickup } from "./physics/entities/pickup.js";
 import { Ship } from "./physics/entities/ship.js";
 import { HomingBehavior } from "./physics/homing.js";
 import { Vector2 } from "./physics/vector.js";
@@ -23,7 +24,21 @@ const ship = new Ship({
 });
 world.spawn(ship);
 
-// 3. Attach gentle Homing component to one asteroid tracking player ship
+// 3. Spawn initial test pickups (shield & repair)
+world.spawn(
+    new Pickup({
+        pos: new Vector2(renderCtx.width / 2 - 80, renderCtx.height / 2 - 60),
+        type: "shield",
+    }),
+);
+world.spawn(
+    new Pickup({
+        pos: new Vector2(renderCtx.width / 2 + 80, renderCtx.height / 2 - 60),
+        type: "repair",
+    }),
+);
+
+// 4. Attach gentle Homing component to one asteroid tracking player ship
 const initialAsteroid = Array.from(world.ofKind("asteroid"))[0];
 if (initialAsteroid) {
     initialAsteroid.homing = new HomingBehavior({
@@ -89,6 +104,11 @@ const loop = createLoop({
         clearCanvas(renderCtx.ctx, renderCtx.width, renderCtx.height);
         const ctx = renderCtx.ctx;
 
+        // Render Pickups via entity method delegation
+        for (const pickup of world.ofKind("pickup")) {
+            pickup.draw(ctx);
+        }
+
         // Render Asteroids via entity method delegation
         for (const asteroid of world.ofKind("asteroid")) {
             asteroid.draw(ctx);
@@ -115,13 +135,25 @@ const loop = createLoop({
             );
 
             renderMIG(ctx, renderX, renderY, renderAngle, ship.thrust);
+
+            // Render protective energy shield bubble when active
+            if (ship.shield > 0) {
+                ctx.save();
+                ctx.strokeStyle = "rgba(56, 189, 248, 0.75)";
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(renderX, renderY, ship.radius + 8, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
         }
 
-        // Render HUD with HP and Score
+        // Render HUD with HP, Shield, and Score
         drawHUD(ctx, {
             ...metrics,
             score: world.score,
             hp: ship.hp,
+            shield: ship.shield,
         });
     },
 });
