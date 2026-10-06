@@ -1,6 +1,7 @@
 import { createInput } from "./core/input.js";
 import { createLoop } from "./core/loop.js";
 import { Ship } from "./physics/entities/ship.js";
+import { HomingBehavior } from "./physics/homing.js";
 import { Vector2 } from "./physics/vector.js";
 import { World } from "./physics/world.js";
 import { clearCanvas, drawHUD, setupCanvas } from "./render/canvas.js";
@@ -22,13 +23,49 @@ const ship = new Ship({
 });
 world.spawn(ship);
 
+// 3. Attach gentle Homing component to one asteroid tracking player ship
+const initialAsteroid = Array.from(world.ofKind("asteroid"))[0];
+if (initialAsteroid) {
+    initialAsteroid.homing = new HomingBehavior({
+        target: ship,
+        turnRate: 25,
+        minDistance: 60,
+    });
+}
+
 // State for render interpolation
 let prevShipState = { x: ship.x, y: ship.y, angle: ship.angle };
 
-// Shooting handler demonstrating call-site binding
+// Find nearest asteroid for player homing bullets
+function findNearestAsteroid(origin) {
+    let nearest = null;
+    let minDist = 350; // acquisition radius
+
+    for (const asteroid of world.ofKind("asteroid")) {
+        const dist = asteroid.pos.sub(origin).length();
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = asteroid;
+        }
+    }
+    return nearest;
+}
+
+// Shooting handler demonstrating call-site binding and homing composition
 function handleShooting(keys) {
     if (keys.justPressed.shoot && ship.alive) {
         const bullet = ship.fire();
+
+        // Attach gentle homing component to bullet if an asteroid is nearby
+        const target = findNearestAsteroid(bullet.pos);
+        if (target) {
+            bullet.homing = new HomingBehavior({
+                target,
+                turnRate: 45,
+                minDistance: 30,
+            });
+        }
+
         world.spawn(bullet);
     }
 }
@@ -42,7 +79,7 @@ const loop = createLoop({
         // Handle ship shooting
         handleShooting(keys);
 
-        // Step world simulation (updates all entities, resolves collisions, applies arena boundaries, sweeps dead)
+        // Step world simulation (updates all entities, applies arena boundaries, sweeps dead)
         world.step(dt, keys, renderCtx.width, renderCtx.height);
 
         // Clear edge-triggered keys after physics step
