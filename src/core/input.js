@@ -7,6 +7,7 @@ export function createInput() {
         turnLeft: false,
         turnRight: false,
         moveBackward: false,
+        shoot: false,
     };
 
     const justPressed = {
@@ -14,6 +15,7 @@ export function createInput() {
         turnLeft: false,
         turnRight: false,
         moveBackward: false,
+        shoot: false,
     };
 
     function setKey(action, isDown, repeat = false) {
@@ -45,6 +47,10 @@ export function createInput() {
             setKey("turnRight", true, e.repeat);
             e.preventDefault();
         }
+        if (e.code === "Space") {
+            setKey("shoot", true, e.repeat);
+            e.preventDefault();
+        }
     }
 
     function onKeyUp(e) {
@@ -56,6 +62,8 @@ export function createInput() {
             setKey("turnLeft", false);
         if (e.code === "ArrowRight" || e.code === "KeyD")
             setKey("turnRight", false);
+        if (e.code === "Space")
+            setKey("shoot", false);
     }
 
     window.addEventListener("keydown", onKeyDown);
