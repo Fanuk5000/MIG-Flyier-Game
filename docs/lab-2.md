@@ -6,7 +6,7 @@
 
 ## 1. Architecture Overview & Entity Model
 
-```
+```text
 Game Loop (60 Hz)
   └── World.step(dt, inputs, width, height)
         │
