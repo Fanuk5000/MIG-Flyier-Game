@@ -77,13 +77,26 @@ export class Ship extends Entity {
     }
 
     /**
-     * Heals or resets ship HP.
-     * @param {number} [amount=100]
+     * Heals ship HP.
+     * @param {number} [amount=35]
      */
-    heal(amount = 100) {
+    heal(amount = 35) {
         this.#hp = Math.min(this.#maxHp, this.#hp + amount);
-        this.#shield = 0; // reset shield on complete repair/respawn
-        if (this.alive === false) this.alive = true;
+        if (this.alive === false && this.#hp > 0) this.alive = true;
+    }
+
+    /**
+     * Resets ship state on respawn.
+     * @param {Vector2} [pos]
+     */
+    respawn(pos) {
+        this.#hp = this.#maxHp;
+        this.#shield = 0;
+        this.alive = true;
+        if (pos) {
+            this.pos = pos;
+        }
+        this.vel = new Vector2(0, 0);
     }
 
     /**
