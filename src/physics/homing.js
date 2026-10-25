@@ -49,7 +49,7 @@ export class HomingBehavior {
         // Clamp turn rate by delta time (gentle curve)
         const maxTurn = this.turnRate * dt;
         const turn = Math.max(-maxTurn, Math.min(maxTurn, diff));
-        entity.angle = ((entity.angle + turn) % 360 + 360) % 360;
+        entity.angle = (((entity.angle + turn) % 360) + 360) % 360;
 
         // Maintain entity speed along new heading
         const speed = entity.vel.length();

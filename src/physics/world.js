@@ -1,8 +1,8 @@
+import { PickupFactory } from "../factories/pickup.js";
 import { wrapArena } from "./arena.js";
 import { findCollisions } from "./collision.js";
 import { Asteroid } from "./entities/asteroid.js";
 import { spawnExplosion } from "./entities/explosion.js";
-import { Pickup } from "./entities/pickup.js";
 import { Vector2 } from "./vector.js";
 
 export class World {
@@ -160,13 +160,7 @@ export class World {
 
             // 35% chance to drop bonus Pickup on destruction
             if (Math.random() < 0.35) {
-                const isShield = Math.random() < 0.5;
-                const type = isShield ? "shield" : "repair";
-                const onCollect = isShield
-                    ? (target) => target.addShield?.(50)
-                    : (target) => target.heal?.(35);
-
-                this.spawn(new Pickup({ pos: asteroid.pos, type, onCollect }));
+                this.spawn(PickupFactory.createRandom(asteroid.pos));
             }
         } else {
             spawnExplosion(this, bullet.pos, 4, "#facc15");

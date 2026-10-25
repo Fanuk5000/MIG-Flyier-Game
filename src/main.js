@@ -1,6 +1,6 @@
 import { createInput } from "./core/input.js";
 import { createLoop } from "./core/loop.js";
-import { Pickup } from "./physics/entities/pickup.js";
+import { PickupFactory } from "./factories/pickup.js";
 import { Ship } from "./physics/entities/ship.js";
 import { HomingBehavior } from "./physics/homing.js";
 import { Vector2 } from "./physics/vector.js";
@@ -26,16 +26,14 @@ world.spawn(ship);
 
 // 3. Spawn initial test pickups (shield & repair)
 world.spawn(
-    new Pickup({
-        pos: new Vector2(renderCtx.width / 2 - 80, renderCtx.height / 2 - 60),
-        type: "shield",
-    }),
+    PickupFactory.createShield(
+        new Vector2(renderCtx.width / 2 - 80, renderCtx.height / 2 - 60),
+    ),
 );
 world.spawn(
-    new Pickup({
-        pos: new Vector2(renderCtx.width / 2 + 80, renderCtx.height / 2 - 60),
-        type: "repair",
-    }),
+    PickupFactory.createRepair(
+        new Vector2(renderCtx.width / 2 + 80, renderCtx.height / 2 - 60),
+    ),
 );
 
 // 4. Attach gentle Homing component to one asteroid tracking player ship
