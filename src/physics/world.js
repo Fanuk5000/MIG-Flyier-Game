@@ -160,8 +160,13 @@ export class World {
 
             // 35% chance to drop bonus Pickup on destruction
             if (Math.random() < 0.35) {
-                const type = Math.random() < 0.5 ? "shield" : "repair";
-                this.spawn(new Pickup({ pos: asteroid.pos, type }));
+                const isShield = Math.random() < 0.5;
+                const type = isShield ? "shield" : "repair";
+                const onCollect = isShield
+                    ? (target) => target.addShield?.(50)
+                    : (target) => target.heal?.(35);
+
+                this.spawn(new Pickup({ pos: asteroid.pos, type, onCollect }));
             }
         } else {
             spawnExplosion(this, bullet.pos, 4, "#facc15");
@@ -212,10 +217,7 @@ export class World {
         if (this.#shipRespawnTimer <= 0) {
             // Find safe spot (far from asteroids)
             const safePos = this.#findSafePosition(width, height);
-            this.#shipRef.pos = safePos;
-            this.#shipRef.vel = new Vector2(0, 0);
-            this.#shipRef.heal(100);
-            this.#shipRef.alive = true;
+            this.#shipRef.respawn(safePos);
             spawnExplosion(this, safePos, 12, "#38bdf8");
         }
     }
