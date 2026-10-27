@@ -5,10 +5,26 @@ import { Ship } from "./physics/entities/ship.js";
 import { HomingBehavior } from "./physics/homing.js";
 import { Vector2 } from "./physics/vector.js";
 import { World } from "./physics/world.js";
-import { clearCanvas, drawHUD, setupCanvas } from "./render/canvas.js";
+import { clearCanvas, setupCanvas } from "./render/canvas.js";
 import { lerp, lerpAngle } from "./render/math.js";
 import { renderMIG } from "./render/vehicle.js";
 import "./style.css";
+import { drawHUD } from "./ui/hud.js";
+import { drawLoadingScreen } from "./ui/loading-screen.js";
+
+export const GameState = Object.freeze({
+    LOADING: "LOADING",
+    LOBBY: "LOBBY",
+    PLAYING: "PLAYING",
+    GAME_OVER: "GAME_OVER",
+});
+
+let currentState = GameState.LOADING;
+const loadingState = {
+    progress: 0,
+    status: "Initializing...",
+    error: null,
+};
 
 const canvas = document.querySelector("#game-canvas");
 let renderCtx = setupCanvas(canvas);
@@ -85,6 +101,10 @@ function handleShooting(keys) {
 
 const loop = createLoop({
     simulate(dt) {
+        if (currentState !== GameState.PLAYING) {
+            return;
+        }
+
         const keys = input.getState();
 
         prevShipState = { x: ship.x, y: ship.y, angle: ship.angle };
@@ -101,6 +121,24 @@ const loop = createLoop({
     render(alpha, metrics) {
         clearCanvas(renderCtx.ctx, renderCtx.width, renderCtx.height);
         const ctx = renderCtx.ctx;
+
+        if (currentState === GameState.LOADING) {
+            drawLoadingScreen(
+                ctx,
+                renderCtx.width,
+                renderCtx.height,
+                loadingState,
+            );
+            return;
+        }
+
+        if (currentState === GameState.LOBBY) {
+            drawLoadingScreen(ctx, renderCtx.width, renderCtx.height, {
+                progress: 1,
+                status: "Lobby active — select room...",
+            });
+            return;
+        }
 
         // Render Pickups via entity method delegation
         for (const pickup of world.ofKind("pickup")) {
@@ -163,3 +201,29 @@ loop.start();
 window.addEventListener("resize", () => {
     renderCtx = setupCanvas(canvas);
 });
+
+// Async bootstrap lifecycle
+async function init() {
+    try {
+        currentState = GameState.LOADING;
+        loadingState.status = "Loading core assets...";
+        loadingState.progress = 0.3;
+
+        // Stub progression until M1 asset pipeline integrates
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        loadingState.progress = 0.7;
+        loadingState.status = "Initializing simulation world...";
+
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        loadingState.progress = 1.0;
+        loadingState.status = "Ready";
+
+        // Transition to PLAYING
+        currentState = GameState.PLAYING;
+    } catch (err) {
+        loadingState.error = err.message || "Failed to initialize game";
+        console.error("Initialization error:", err);
+    }
+}
+
+init();
