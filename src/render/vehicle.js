@@ -1,12 +1,20 @@
 /**
- * Render MiG jet fighter with heading angle and optional thruster flame.
+ * Render MiG jet fighter with heading angle, optional thruster flame, and sprite support.
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} x - Center X position
  * @param {number} y - Center Y position
  * @param {number} angle - Orientation in degrees (0 = pointing UP)
  * @param {boolean} isThrusting - Whether afterburner is active
+ * @param {Object} [sprite=null] - Optional sprite configuration { image, sx, sy, sw, sh, width, height }
  */
-export function renderMIG(ctx, x, y, angle, isThrusting = false) {
+export function renderMIG(
+    ctx,
+    x,
+    y,
+    angle,
+    isThrusting = false,
+    sprite = null,
+) {
     ctx.save();
     ctx.translate(x, y);
     const radian = angle * (Math.PI / 180); // angle to radian conversion
@@ -22,30 +30,40 @@ export function renderMIG(ctx, x, y, angle, isThrusting = false) {
         ctx.fill();
     }
 
-    // 2. MiG jet body (delta wings + fuselage)
-    ctx.beginPath();
-    ctx.moveTo(0, -25); // Nose tip
-    ctx.lineTo(5, -5); // Right nose blend
-    ctx.lineTo(18, 10); // Right wing tip
-    ctx.lineTo(5, 12); // Right wing inner
-    ctx.lineTo(6, 20); // Right tail stabilizer
-    ctx.lineTo(-6, 20); // Left tail stabilizer
-    ctx.lineTo(-5, 12); // Left wing inner
-    ctx.lineTo(-18, 10); // Left wing tip
-    ctx.lineTo(-5, -5); // Left nose blend
-    ctx.closePath();
+    // 2. Sprite rendering if asset is loaded; vector fallback otherwise
+    if (sprite?.image) {
+        const { image, sx = 0, sy = 0 } = sprite;
+        const sw = sprite.sw || image.width;
+        const sh = sprite.sh || image.height;
+        const dw = sprite.width || 36;
+        const dh = sprite.height || 45;
+        ctx.drawImage(image, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+    } else {
+        // Vector fallback: MiG jet body (delta wings + fuselage)
+        ctx.beginPath();
+        ctx.moveTo(0, -25); // Nose tip
+        ctx.lineTo(5, -5); // Right nose blend
+        ctx.lineTo(18, 10); // Right wing tip
+        ctx.lineTo(5, 12); // Right wing inner
+        ctx.lineTo(6, 20); // Right tail stabilizer
+        ctx.lineTo(-6, 20); // Left tail stabilizer
+        ctx.lineTo(-5, 12); // Left wing inner
+        ctx.lineTo(-18, 10); // Left wing tip
+        ctx.lineTo(-5, -5); // Left nose blend
+        ctx.closePath();
 
-    ctx.fillStyle = "#94a3b8"; // Aircraft gray
-    ctx.fill();
-    ctx.strokeStyle = "#38bdf8"; // Cyan edge accent
-    ctx.lineWidth = 2;
-    ctx.stroke();
+        ctx.fillStyle = "#94a3b8"; // Aircraft gray
+        ctx.fill();
+        ctx.strokeStyle = "#38bdf8"; // Cyan edge accent
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
-    // 3. Cockpit canopy
-    ctx.beginPath();
-    ctx.ellipse(0, -6, 3, 7, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "#0284c7"; // Cockpit blue
-    ctx.fill();
+        // Cockpit canopy
+        ctx.beginPath();
+        ctx.ellipse(0, -6, 3, 7, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "#0284c7"; // Cockpit blue
+        ctx.fill();
+    }
 
     ctx.restore();
 }

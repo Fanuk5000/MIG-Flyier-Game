@@ -25,6 +25,10 @@ const loadingState = {
     status: "Initializing...",
     error: null,
 };
+const assets = {
+    sprites: {},
+    audio: {},
+};
 
 const canvas = document.querySelector("#game-canvas");
 let renderCtx = setupCanvas(canvas);
@@ -153,12 +157,12 @@ const loop = createLoop({
 
         // Render Asteroids via entity method delegation
         for (const asteroid of world.ofKind("asteroid")) {
-            asteroid.draw(ctx);
+            asteroid.draw(ctx, assets.sprites.asteroid);
         }
 
         // Render Bullets via entity method delegation
         for (const bullet of world.ofKind("bullet")) {
-            bullet.draw(ctx);
+            bullet.draw(ctx, assets.sprites.bullet);
         }
 
         // Render Particles (Explosions) via entity method delegation
@@ -176,7 +180,14 @@ const loop = createLoop({
                 alpha,
             );
 
-            renderMIG(ctx, renderX, renderY, renderAngle, ship.thrust);
+            renderMIG(
+                ctx,
+                renderX,
+                renderY,
+                renderAngle,
+                ship.thrust,
+                assets.sprites.ship,
+            );
 
             // Render protective energy shield bubble when active
             if (ship.shield > 0) {
