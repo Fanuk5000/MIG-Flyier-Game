@@ -5,7 +5,7 @@ import { Asteroid } from "./entities/asteroid.js";
 import { spawnExplosion } from "./entities/explosion.js";
 import { Vector2 } from "./vector.js";
 
-export class World {
+export class World extends EventTarget {
     #entities = new Map();
     #score = 0;
     #shipRespawnTimer = 0;
@@ -16,7 +16,15 @@ export class World {
     }
 
     set score(val) {
+        const prev = this.#score;
         this.#score = val;
+        if (prev !== val) {
+            this.dispatchEvent(
+                new CustomEvent("scoreChanged", {
+                    detail: { score: this.#score, delta: val - prev },
+                }),
+            );
+        }
     }
 
     spawn(entity) {
@@ -153,9 +161,19 @@ export class World {
     #bulletHitAsteroid(bullet, asteroid) {
         bullet.alive = false;
         asteroid.takeDamage(bullet.damage || 25);
+        this.dispatchEvent(
+            new CustomEvent("hit", {
+                detail: { pos: bullet.pos, target: "asteroid" },
+            }),
+        );
 
         if (!asteroid.alive) {
-            this.#score += 100;
+            this.score += 100;
+            this.dispatchEvent(
+                new CustomEvent("exploded", {
+                    detail: { pos: asteroid.pos, radius: 16, kind: "asteroid" },
+                }),
+            );
             spawnExplosion(this, asteroid.pos, 16, "#94a3b8");
 
             // 35% chance to drop bonus Pickup on destruction
@@ -170,8 +188,23 @@ export class World {
     #bulletHitShip(bullet, ship) {
         bullet.alive = false;
         ship.takeDamage(bullet.damage || 25);
+        this.dispatchEvent(
+            new CustomEvent("hit", {
+                detail: { pos: bullet.pos, target: "ship" },
+            }),
+        );
 
         if (!ship.alive) {
+            this.dispatchEvent(
+                new CustomEvent("exploded", {
+                    detail: { pos: ship.pos, radius: 24, kind: "ship" },
+                }),
+            );
+            this.dispatchEvent(
+                new CustomEvent("shipDied", {
+                    detail: { pos: ship.pos },
+                }),
+            );
             spawnExplosion(this, ship.pos, 24, "#ef4444");
             this.#shipRespawnTimer = 2.0;
         } else {
@@ -182,8 +215,23 @@ export class World {
     #shipCrashAsteroid(ship, asteroid) {
         ship.takeDamage(50);
         asteroid.takeDamage(50);
+        this.dispatchEvent(
+            new CustomEvent("hit", {
+                detail: { pos: ship.pos, target: "crash" },
+            }),
+        );
 
         if (!ship.alive) {
+            this.dispatchEvent(
+                new CustomEvent("exploded", {
+                    detail: { pos: ship.pos, radius: 24, kind: "ship" },
+                }),
+            );
+            this.dispatchEvent(
+                new CustomEvent("shipDied", {
+                    detail: { pos: ship.pos },
+                }),
+            );
             spawnExplosion(this, ship.pos, 24, "#ef4444");
             this.#shipRespawnTimer = 2.0;
         } else {
@@ -191,7 +239,12 @@ export class World {
         }
 
         if (!asteroid.alive) {
-            this.#score += 50;
+            this.score += 50;
+            this.dispatchEvent(
+                new CustomEvent("exploded", {
+                    detail: { pos: asteroid.pos, radius: 16, kind: "asteroid" },
+                }),
+            );
             spawnExplosion(this, asteroid.pos, 16, "#94a3b8");
         }
     }
@@ -199,9 +252,14 @@ export class World {
     #shipCollectPickup(ship, pickup) {
         pickup.applyTo(ship);
         pickup.alive = false;
-        this.#score += 25;
+        this.score += 25;
         const color = pickup.type === "shield" ? "#38bdf8" : "#34d399";
         spawnExplosion(this, pickup.pos, 10, color);
+        this.dispatchEvent(
+            new CustomEvent("pickupCollected", {
+                detail: { type: pickup.type, pos: pickup.pos },
+            }),
+        );
     }
 
     #handleRespawn(dt, width = 800, height = 600) {
@@ -213,6 +271,11 @@ export class World {
             const safePos = this.#findSafePosition(width, height);
             this.#shipRef.respawn(safePos);
             spawnExplosion(this, safePos, 12, "#38bdf8");
+            this.dispatchEvent(
+                new CustomEvent("respawned", {
+                    detail: { pos: safePos },
+                }),
+            );
         }
     }
 

@@ -85,6 +85,12 @@ function handleShooting(keys) {
     if (keys.justPressed.shoot && ship.alive) {
         const bullet = ship.fire();
 
+        world.dispatchEvent(
+            new CustomEvent("fired", {
+                detail: { pos: bullet.pos, kind: "bullet" },
+            }),
+        );
+
         // Attach gentle homing component to bullet if an asteroid is nearby
         const target = findNearestAsteroid(bullet.pos);
         if (target) {
