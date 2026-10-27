@@ -190,7 +190,12 @@ export class World extends EventTarget {
         ship.takeDamage(bullet.damage || 25);
         this.dispatchEvent(
             new CustomEvent("hit", {
-                detail: { pos: bullet.pos, target: "ship" },
+                detail: {
+                    pos: bullet.pos,
+                    target: "ship",
+                    hp: ship.hp,
+                    shield: ship.shield,
+                },
             }),
         );
 
@@ -217,7 +222,12 @@ export class World extends EventTarget {
         asteroid.takeDamage(50);
         this.dispatchEvent(
             new CustomEvent("hit", {
-                detail: { pos: ship.pos, target: "crash" },
+                detail: {
+                    pos: ship.pos,
+                    target: "crash",
+                    hp: ship.hp,
+                    shield: ship.shield,
+                },
             }),
         );
 
@@ -257,7 +267,12 @@ export class World extends EventTarget {
         spawnExplosion(this, pickup.pos, 10, color);
         this.dispatchEvent(
             new CustomEvent("pickupCollected", {
-                detail: { type: pickup.type, pos: pickup.pos },
+                detail: {
+                    type: pickup.type,
+                    pos: pickup.pos,
+                    hp: ship.hp,
+                    shield: ship.shield,
+                },
             }),
         );
     }
@@ -273,7 +288,11 @@ export class World extends EventTarget {
             spawnExplosion(this, safePos, 12, "#38bdf8");
             this.dispatchEvent(
                 new CustomEvent("respawned", {
-                    detail: { pos: safePos },
+                    detail: {
+                        pos: safePos,
+                        hp: this.#shipRef.hp,
+                        shield: this.#shipRef.shield,
+                    },
                 }),
             );
         }

@@ -9,8 +9,7 @@ import { clearCanvas, setupCanvas } from "./render/canvas.js";
 import { lerp, lerpAngle } from "./render/math.js";
 import { renderMIG } from "./render/vehicle.js";
 import "./style.css";
-import { drawHUD } from "./ui/hud.js";
-import { drawLoadingScreen } from "./ui/loading-screen.js";
+import { createHUD, drawLoadingScreen } from "./ui/index.js";
 
 export const GameState = Object.freeze({
     LOADING: "LOADING",
@@ -43,6 +42,9 @@ const ship = new Ship({
     pos: new Vector2(renderCtx.width / 2, renderCtx.height / 2),
 });
 world.spawn(ship);
+
+// 3. Initialize decoupled event-driven HUD
+const hud = createHUD(world, ship);
 
 // 3. Spawn initial test pickups (shield & repair)
 world.spawn(
@@ -201,13 +203,8 @@ const loop = createLoop({
             }
         }
 
-        // Render HUD with HP, Shield, and Score
-        drawHUD(ctx, {
-            ...metrics,
-            score: world.score,
-            hp: ship.hp,
-            shield: ship.shield,
-        });
+        // Render decoupled event-driven HUD overlay
+        hud.draw(ctx, metrics);
     },
 });
 
