@@ -1,3 +1,10 @@
+import { loadAll } from "./assets/index.js";
+import {
+    bindEvents,
+    getAudioContext,
+    setBuffers,
+    unlockAudio,
+} from "./audio/index.js";
 import { createInput } from "./core/input.js";
 import { createLoop } from "./core/loop.js";
 import { PickupFactory } from "./factories/pickup.js";
@@ -9,7 +16,12 @@ import { clearCanvas, setupCanvas } from "./render/canvas.js";
 import { lerp, lerpAngle } from "./render/math.js";
 import { renderMIG } from "./render/vehicle.js";
 import "./style.css";
-import { createHUD, drawLoadingScreen } from "./ui/index.js";
+import {
+    createHUD,
+    createLobbyView,
+    drawLoadingScreen,
+    Lobby,
+} from "./ui/index.js";
 
 export const GameState = Object.freeze({
     LOADING: "LOADING",
@@ -42,13 +54,30 @@ const ship = new Ship({
 });
 world.spawn(ship);
 
-// 3. Pregenerate Shahed drones slowly approaching MiG
-world.pregenerate(renderCtx.width, renderCtx.height, 4, ship);
+// 3. Spawns Shahed drones based on selected tactical sector
+function launchGame(roomConfig = {}) {
+    const count = roomConfig?.shahedCount ?? 4;
+    for (const drone of world.ofKind("shahed")) {
+        world.despawn(drone.id);
+    }
+    world.pregenerate(renderCtx.width, renderCtx.height, count, ship);
+    currentState = GameState.PLAYING;
+}
 
-// 4. Initialize decoupled event-driven HUD
+// 4. Initialize Lobby state controller and DOM overlay
+const lobby = new Lobby({ endpoint: "/api/rooms.json" });
+const lobbyView = createLobbyView(lobby, {
+    onLaunch: async (detail) => {
+        await unlockAudio();
+        launchGame(detail?.room);
+    },
+});
+lobbyView.hide(); // Hidden during initial asset load screen
+
+// 5. Initialize decoupled event-driven HUD
 const hud = createHUD(world, ship);
 
-// 5. Spawn initial test pickups (shield & repair)
+// 6. Spawn initial test pickups (shield & repair)
 world.spawn(
     PickupFactory.createShield(
         new Vector2(renderCtx.width / 2 - 80, renderCtx.height / 2 - 60),
@@ -212,20 +241,42 @@ window.addEventListener("resize", () => {
 async function init() {
     try {
         currentState = GameState.LOADING;
-        loadingState.status = "Loading core assets...";
-        loadingState.progress = 0.3;
+        loadingState.status = "Loading asset manifest...";
+        loadingState.progress = 0;
 
-        // Stub progression until M1 asset pipeline integrates
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        loadingState.progress = 0.7;
-        loadingState.status = "Initializing simulation world...";
+        const audioCtx = getAudioContext();
 
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        // 1. Concurrent asset loading with live progress tracking
+        try {
+            const registry = await loadAll("/assets/manifest.json", {
+                audioCtx,
+                onProgress: (ratio) => {
+                    loadingState.progress = ratio;
+                    loadingState.status = `Loading assets (${Math.round(ratio * 100)}%)...`;
+                },
+            });
+
+            if (registry.sprites) Object.assign(assets.sprites, registry.sprites);
+            if (registry.audio) Object.assign(assets.audio, registry.audio);
+        } catch (assetErr) {
+            console.warn("Asset load warning (using vector fallbacks):", assetErr);
+            loadingState.progress = 1.0;
+        }
+
+        // 2. Register decoded audio buffers & bind simulation EventTarget bus
+        setBuffers(assets.audio);
+        bindEvents(world);
+
         loadingState.progress = 1.0;
         loadingState.status = "Ready";
 
-        // Transition to PLAYING
-        currentState = GameState.PLAYING;
+        // Small pause to see completed progress bar
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        // 3. Transition to Lobby phase
+        currentState = GameState.LOBBY;
+        lobbyView.show();
+        lobby.startAutoRefresh(4000);
     } catch (err) {
         loadingState.error = err.message || "Failed to initialize game";
         console.error("Initialization error:", err);
