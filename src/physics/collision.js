@@ -29,7 +29,8 @@ export function areColliding(a, b) {
 export function* findCollisions(world) {
     const entities = [];
     for (const entity of world) {
-        if (entity.alive && entity.radius > 0) {
+        // Exclude cosmetic particles from collision detection
+        if (entity.alive && entity.radius > 0 && entity.kind !== "particle") {
             entities.push(entity);
         }
     }

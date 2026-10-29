@@ -3,8 +3,8 @@
  * @param {HTMLCanvasElement} canvas
  */
 export function setupCanvas(canvas) {
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const dpr = 1.5;
     const width = window.innerWidth;
     const height = window.innerHeight;
 
@@ -23,11 +23,12 @@ export function setupCanvas(canvas) {
 }
 
 /**
- * Clear the entire canvas frame.
+ * Clear the entire canvas frame with opaque space background.
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} width
  * @param {number} height
  */
 export function clearCanvas(ctx, width, height) {
-    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#0b0f19";
+    ctx.fillRect(0, 0, width, height);
 }
