@@ -39,6 +39,8 @@ export class Shahed extends Entity {
                       minDistance: 10,
                   })
                 : null);
+        this.animTime = Math.random() * 10;
+        this.frameRate = 12; // 12 FPS animation cycle
     }
 
     /**
@@ -53,7 +55,7 @@ export class Shahed extends Entity {
     }
 
     /**
-     * Updates gentle homing steering and linear position.
+     * Updates gentle homing steering, animation timer, and linear position.
      * @param {number} dt
      */
     update(dt) {
@@ -62,39 +64,47 @@ export class Shahed extends Entity {
             this.homing.update(this, dt);
         }
 
+        this.animTime += dt;
         super.update(dt);
     }
 
     /**
-     * Renders Shahed drone using sprite if available, or delta-wing vector fallback.
+     * Renders Shahed drone using 6-frame sprite queue if available, or delta-wing vector fallback.
      * @param {CanvasRenderingContext2D} ctx
-     * @param {Object} [sprite=null]
+     * @param {Array<HTMLImageElement>|Object} [sprites=null]
      */
-    draw(ctx, sprite = null) {
+    draw(ctx, sprites = null) {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate((this.angle * Math.PI) / 180);
 
-        if (sprite?.image) {
-            const { image, sx = 0, sy = 0 } = sprite;
-            const sw = sprite.sw || image.width;
-            const sh = sprite.sh || image.height;
-            const size = this.radius * 2;
-            ctx.drawImage(
-                image,
-                sx,
-                sy,
-                sw,
-                sh,
-                -this.radius,
-                -this.radius,
-                size,
-                size,
-            );
+        let activeImg = null;
+        if (Array.isArray(sprites) && sprites.length > 0) {
+            const frameIdx =
+                Math.floor(this.animTime * this.frameRate) % sprites.length;
+            activeImg = sprites[frameIdx];
+        } else if (sprites instanceof HTMLImageElement) {
+            activeImg = sprites;
+        } else if (sprites?.image) {
+            activeImg = sprites.image;
+        }
+
+        const hasSprite = Boolean(
+            activeImg &&
+                activeImg.complete !== false &&
+                activeImg.naturalWidth !== 0,
+        );
+
+        if (hasSprite) {
+            // Shahed aspect ratio: 2400 x 1792 (1.338:1)
+            // Preserves radius 18 hitbox
+            const dw = 44;
+            const dh = 33;
+            ctx.drawImage(activeImg, -dw / 2, -dh / 2, dw, dh);
             if (this.homing) {
                 ctx.strokeStyle = "#f87171";
                 ctx.lineWidth = 1.5;
-                ctx.strokeRect(-this.radius, -this.radius, size, size);
+                ctx.strokeRect(-dw / 2, -dh / 2, dw, dh);
             }
         } else {
             // Delta-wing silhouette (Shahed-136 loitering drone)

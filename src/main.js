@@ -178,9 +178,19 @@ const loop = createLoop({
             pickup.draw(ctx);
         }
 
+        // 6-frame animation queue for Shahed drones: static -> 1 -> 2 -> 3 -> 4 -> 5
+        const shahedFrames = [
+            assets.sprites.shahedStatic,
+            assets.sprites.shahed1,
+            assets.sprites.shahed2,
+            assets.sprites.shahed3,
+            assets.sprites.shahed4,
+            assets.sprites.shahed5,
+        ].filter(Boolean);
+
         // Render Shahed drones via entity method delegation
         for (const shahed of world.ofKind("shahed")) {
-            shahed.draw(ctx, assets.sprites.shahed);
+            shahed.draw(ctx, shahedFrames);
         }
 
         // Render Bullets via entity method delegation
@@ -203,14 +213,10 @@ const loop = createLoop({
                 alpha,
             );
 
-            renderMIG(
-                ctx,
-                renderX,
-                renderY,
-                renderAngle,
-                ship.thrust,
-                assets.sprites.ship,
-            );
+            renderMIG(ctx, renderX, renderY, renderAngle, ship.thrust, {
+                static: assets.sprites.migStatic,
+                fly: assets.sprites.migFly,
+            });
 
             // Render protective energy shield bubble when active
             if (ship.shield > 0) {
@@ -256,10 +262,14 @@ async function init() {
                 },
             });
 
-            if (registry.sprites) Object.assign(assets.sprites, registry.sprites);
+            if (registry.sprites)
+                Object.assign(assets.sprites, registry.sprites);
             if (registry.audio) Object.assign(assets.audio, registry.audio);
         } catch (assetErr) {
-            console.warn("Asset load warning (using vector fallbacks):", assetErr);
+            console.warn(
+                "Asset load warning (using vector fallbacks):",
+                assetErr,
+            );
             loadingState.progress = 1.0;
         }
 
