@@ -1,0 +1,44 @@
+{
+  "rooms": [
+    {
+      "id": "kyiv-sector-alpha",
+      "name": "Sector Alpha — Northern Approach",
+      "region": "EU-East",
+      "players": 3,
+      "maxPlayers": 8,
+      "ping": 24,
+      "shahedCount": 4,
+      "difficulty": "Standard"
+    },
+    {
+      "id": "odesa-coastal-shield",
+      "name": "Sector Bravo — Black Sea Patrol",
+      "region": "EU-South",
+      "players": 5,
+      "maxPlayers": 8,
+      "ping": 38,
+      "difficulty": "High",
+      "shahedCount": 7
+    },
+    {
+      "id": "dnipro-night-intercept",
+      "name": "Sector Charlie — Night Intercept",
+      "region": "EU-Central",
+      "players": 2,
+      "maxPlayers": 6,
+      "ping": 31,
+      "difficulty": "Extreme",
+      "shahedCount": 10
+    },
+    {
+      "id": "lviv-training-range",
+      "name": "Sector Delta — MiG-29 Training Range",
+      "region": "EU-West",
+      "players": 1,
+      "maxPlayers": 4,
+      "ping": 18,
+      "difficulty": "Low",
+      "shahedCount": 2
+    }
+  ]
+}
