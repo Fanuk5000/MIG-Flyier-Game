@@ -23,18 +23,31 @@ export function renderMIG(
     // 1. Pick active sprite (static vs flying/afterburner)
     let activeImg = null;
     if (sprite) {
-        if (sprite instanceof HTMLImageElement || (typeof sprite.tagName === "string" && sprite.tagName === "IMG")) {
+        if (
+            sprite instanceof HTMLImageElement ||
+            (typeof sprite.tagName === "string" && sprite.tagName === "IMG")
+        ) {
             activeImg = sprite;
         } else if (sprite.image) {
             activeImg = sprite.image;
         } else {
             activeImg = isThrusting
-                ? (sprite.fly || sprite.migFly || sprite.static || sprite.migStatic)
-                : (sprite.static || sprite.migStatic || sprite.fly || sprite.migFly);
+                ? sprite.fly ||
+                  sprite.migFly ||
+                  sprite.static ||
+                  sprite.migStatic
+                : sprite.static ||
+                  sprite.migStatic ||
+                  sprite.fly ||
+                  sprite.migFly;
         }
     }
 
-    const hasSprite = Boolean(activeImg && (activeImg.complete !== false) && (activeImg.naturalWidth !== 0));
+    const hasSprite = Boolean(
+        activeImg &&
+            activeImg.complete !== false &&
+            activeImg.naturalWidth !== 0,
+    );
 
     // 2. Afterburner flame (drawn behind jet when thrusting if using vector fallback)
     if (isThrusting && !hasSprite) {
@@ -48,8 +61,8 @@ export function renderMIG(
 
     // 3. Sprite rendering if asset is loaded; vector fallback otherwise
     if (hasSprite) {
-        const dw = 40;
-        const dh = 40;
+        const dw = 70;
+        const dh = 70;
         ctx.drawImage(activeImg, -dw / 2, -dh / 2, dw, dh);
     } else {
         // Vector fallback: MiG jet body (delta wings + fuselage)

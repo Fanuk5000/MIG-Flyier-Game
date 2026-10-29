@@ -276,10 +276,18 @@ export async function loadAll(
 
     for (const [key, url] of spriteEntries) {
         tasks.push(
-            withRetry((s) => loadImage(url, s), { signal }).then((img) => {
-                notifyProgress();
-                return { category: "sprites", key, asset: img };
-            }),
+            withRetry((s) => loadImage(url, s), { signal })
+                .catch((err) => {
+                    console.warn(
+                        `[Asset Pipeline] Missing sprite for ${key} (${url}):`,
+                        err?.message || err,
+                    );
+                    return createFallbackTexture();
+                })
+                .then((img) => {
+                    notifyProgress();
+                    return { category: "sprites", key, asset: img };
+                }),
         );
     }
 
@@ -287,27 +295,35 @@ export async function loadAll(
         tasks.push(
             (async () => {
                 let sound = null;
-                if (audioCtx) {
-                    sound = await withRetry(
-                        (s) => loadAudio(audioCtx, url, s),
-                        { signal },
+                try {
+                    if (audioCtx) {
+                        sound = await withRetry(
+                            (s) => loadAudio(audioCtx, url, s),
+                            { signal },
+                        );
+                    } else {
+                        // If AudioContext not provided, fetch raw ArrayBuffer
+                        const res = await withRetry(
+                            async (s) => {
+                                const resp = await fetch(url, { signal: s });
+                                if (!resp.ok)
+                                    throw new HttpError(
+                                        resp.status,
+                                        resp.statusText,
+                                        url,
+                                    );
+                                return resp;
+                            },
+                            { signal },
+                        );
+                        sound = await res.arrayBuffer();
+                    }
+                } catch (err) {
+                    console.warn(
+                        `[Asset Pipeline] Missing audio for ${key} (${url}):`,
+                        err?.message || err,
                     );
-                } else {
-                    // If AudioContext not provided, fetch raw ArrayBuffer
-                    const res = await withRetry(
-                        async (s) => {
-                            const resp = await fetch(url, { signal: s });
-                            if (!resp.ok)
-                                throw new HttpError(
-                                    resp.status,
-                                    resp.statusText,
-                                    url,
-                                );
-                            return resp;
-                        },
-                        { signal },
-                    );
-                    sound = await res.arrayBuffer();
+                    sound = createSilentAudioBuffer(audioCtx);
                 }
                 notifyProgress();
                 return { category: "audio", key, asset: sound };
@@ -317,10 +333,18 @@ export async function loadAll(
 
     for (const [key, url] of arenaEntries) {
         tasks.push(
-            withRetry((s) => fetchJson(url, s), { signal }).then((json) => {
-                notifyProgress();
-                return { category: "arena", key, asset: json };
-            }),
+            withRetry((s) => fetchJson(url, s), { signal })
+                .catch((err) => {
+                    console.warn(
+                        `[Asset Pipeline] Missing arena config for ${key} (${url}):`,
+                        err?.message || err,
+                    );
+                    return {};
+                })
+                .then((json) => {
+                    notifyProgress();
+                    return { category: "arena", key, asset: json };
+                }),
         );
     }
 

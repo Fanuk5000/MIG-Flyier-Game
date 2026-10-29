@@ -1,20 +1,20 @@
 {
-  "sprites": {
-    "migStatic": "/assets/Vehicles/MIG/MIG-29-static.png",
-    "migFly": "/assets/Vehicles/MIG/MIG-29-fly.png",
-    "shahedStatic": "/assets/Vehicles/Shahed/Shahed-static.png",
-    "shahed1": "/assets/Vehicles/Shahed/Shahed-1.png",
-    "shahed2": "/assets/Vehicles/Shahed/Shahed-2.png",
-    "shahed3": "/assets/Vehicles/Shahed/Shahed-3.png",
-    "shahed4": "/assets/Vehicles/Shahed/Shahed-4.png",
-    "shahed5": "/assets/Vehicles/Shahed/Shahed-5.png"
-  },
-  "audio": {
-    "laser": "/assets/audio/laser.mp3",
-    "explosion": "/assets/audio/explosion.mp3",
-    "pickup": "/assets/audio/pickup.mp3"
-  },
-  "arena": {
-    "default": "/assets/data/arena-default.json"
-  }
+    "sprites": {
+        "migStatic": "/assets/Vehicles/MIG/MIG-29-static.png",
+        "migFly": "/assets/Vehicles/MIG/MIG-29-fly.png",
+        "shahedStatic": "/assets/Vehicles/Shahed/Shahed-static.png",
+        "shahed1": "/assets/Vehicles/Shahed/Shahed-1.png",
+        "shahed2": "/assets/Vehicles/Shahed/Shahed-2.png",
+        "shahed3": "/assets/Vehicles/Shahed/Shahed-3.png",
+        "shahed4": "/assets/Vehicles/Shahed/Shahed-4.png",
+        "shahed5": "/assets/Vehicles/Shahed/Shahed-5.png"
+    },
+    "audio": {
+        "laser": "/assets/audio/laser.mp3",
+        "explosion": "/assets/audio/explosion.mp3",
+        "pickup": "/assets/audio/pickup.mp3"
+    },
+    "arena": {
+        "default": "/assets/data/arena-default.json"
+    }
 }

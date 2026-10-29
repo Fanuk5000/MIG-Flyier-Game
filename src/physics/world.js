@@ -86,7 +86,7 @@ export class World extends EventTarget {
                     ),
                     vel: Vector2.fromHeadingDegrees(headingDeg, speed),
                     angle: headingDeg,
-                    radius: 18 + Math.random() * 4,
+                    radius: 22 + Math.random() * 3,
                     speed,
                     target: homingTarget,
                 }),

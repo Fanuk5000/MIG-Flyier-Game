@@ -21,7 +21,7 @@ export class Shahed extends Entity {
         pos,
         vel,
         angle = 0,
-        radius = 18,
+        radius = 22,
         hp = 40,
         speed = 45,
         homing = null,
@@ -97,9 +97,9 @@ export class Shahed extends Entity {
 
         if (hasSprite) {
             // Shahed aspect ratio: 2400 x 1792 (1.338:1)
-            // Preserves radius 18 hitbox
-            const dw = 44;
-            const dh = 33;
+            // Preserves radius 22 hitbox
+            const dw = 60;
+            const dh = 45;
             ctx.drawImage(activeImg, -dw / 2, -dh / 2, dw, dh);
             if (this.homing) {
                 ctx.strokeStyle = "#f87171";
