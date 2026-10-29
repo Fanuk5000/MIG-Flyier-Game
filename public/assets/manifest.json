@@ -1,0 +1,15 @@
+{
+    "sprites": {
+        "ship": "/assets/sprites/mig29.png",
+        "asteroid": "/assets/sprites/asteroid.png",
+        "bullet": "/assets/sprites/bullet.png"
+    },
+    "audio": {
+        "laser": "/assets/audio/laser.mp3",
+        "explosion": "/assets/audio/explosion.mp3",
+        "pickup": "/assets/audio/pickup.mp3"
+    },
+    "arena": {
+        "default": "/assets/data/arena-default.json"
+    }
+}
