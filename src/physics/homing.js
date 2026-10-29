@@ -2,7 +2,7 @@ import { Vector2 } from "./vector.js";
 
 /**
  * Reusable Homing component.
- * Demonstrates composition over inheritance: can be attached to Bullet, Asteroid, or any Entity.
+ * Demonstrates composition over inheritance: can be attached to Bullet, Shahed, or any Entity.
  */
 export class HomingBehavior {
     /**

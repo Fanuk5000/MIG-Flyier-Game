@@ -33,9 +33,8 @@ const canvas = document.querySelector("#game-canvas");
 let renderCtx = setupCanvas(canvas);
 const input = createInput();
 
-// 1. Initialize World entity manager and pregenerate obstacles
+// 1. Initialize World entity manager
 const world = new World();
-world.pregenerate(renderCtx.width, renderCtx.height, 4);
 
 // 2. Spawn player ship
 const ship = new Ship({
@@ -43,10 +42,13 @@ const ship = new Ship({
 });
 world.spawn(ship);
 
-// 3. Initialize decoupled event-driven HUD
+// 3. Pregenerate Shahed drones slowly approaching MiG
+world.pregenerate(renderCtx.width, renderCtx.height, 4, ship);
+
+// 4. Initialize decoupled event-driven HUD
 const hud = createHUD(world, ship);
 
-// 3. Spawn initial test pickups (shield & repair)
+// 5. Spawn initial test pickups (shield & repair)
 world.spawn(
     PickupFactory.createShield(
         new Vector2(renderCtx.width / 2 - 80, renderCtx.height / 2 - 60),
@@ -58,29 +60,19 @@ world.spawn(
     ),
 );
 
-// 4. Attach gentle Homing component to one asteroid tracking player ship
-const initialAsteroid = Array.from(world.ofKind("asteroid"))[0];
-if (initialAsteroid) {
-    initialAsteroid.homing = new HomingBehavior({
-        target: ship,
-        turnRate: 25,
-        minDistance: 60,
-    });
-}
-
 // State for render interpolation
 let prevShipState = { x: ship.x, y: ship.y, angle: ship.angle };
 
-// Find nearest asteroid for player homing bullets
-function findNearestAsteroid(origin) {
+// Find nearest Shahed drone for player homing bullets
+function findNearestShahed(origin) {
     let nearest = null;
     let minDist = 350; // acquisition radius
 
-    for (const asteroid of world.ofKind("asteroid")) {
-        const dist = asteroid.pos.sub(origin).length();
+    for (const drone of world.ofKind("shahed")) {
+        const dist = drone.pos.sub(origin).length();
         if (dist < minDist) {
             minDist = dist;
-            nearest = asteroid;
+            nearest = drone;
         }
     }
     return nearest;
@@ -97,8 +89,8 @@ function handleShooting(keys) {
             }),
         );
 
-        // Attach gentle homing component to bullet if an asteroid is nearby
-        const target = findNearestAsteroid(bullet.pos);
+        // Attach gentle homing component to bullet if a Shahed is nearby
+        const target = findNearestShahed(bullet.pos);
         if (target) {
             bullet.homing = new HomingBehavior({
                 target,
@@ -157,9 +149,9 @@ const loop = createLoop({
             pickup.draw(ctx);
         }
 
-        // Render Asteroids via entity method delegation
-        for (const asteroid of world.ofKind("asteroid")) {
-            asteroid.draw(ctx, assets.sprites.asteroid);
+        // Render Shahed drones via entity method delegation
+        for (const shahed of world.ofKind("shahed")) {
+            shahed.draw(ctx, assets.sprites.shahed);
         }
 
         // Render Bullets via entity method delegation

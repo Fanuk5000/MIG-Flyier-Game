@@ -1,8 +1,8 @@
 import { PickupFactory } from "../factories/pickup.js";
 import { wrapArena } from "./arena.js";
 import { findCollisions } from "./collision.js";
-import { Asteroid } from "./entities/asteroid.js";
 import { spawnExplosion } from "./entities/explosion.js";
+import { Shahed } from "./entities/shahed.js";
 import { Vector2 } from "./vector.js";
 
 export class World extends EventTarget {
@@ -70,24 +70,25 @@ export class World extends EventTarget {
      * Pregenerates initial drifting obstacles.
      * @param {number} width - Arena width
      * @param {number} height - Arena height
-     * @param {number} [count=4] - Quantity of asteroids
+     * @param {number} [count=4] - Quantity of Shahed drones
+     * @param {Entity} [target=null] - Target entity (player ship) to slowly track
      */
-    pregenerate(width, height, count = 4) {
+    pregenerate(width, height, count = 4, target = null) {
+        const homingTarget = target || this.#shipRef;
         for (let i = 0; i < count; i++) {
-            const angle = (Math.random() * 360 * Math.PI) / 180;
-            const speed = 30 + Math.random() * 40;
+            const headingDeg = Math.random() * 360;
+            const speed = 40 + Math.random() * 15;
             this.spawn(
-                new Asteroid({
+                new Shahed({
                     pos: new Vector2(
                         Math.random() * width,
                         Math.random() * height,
                     ),
-                    vel: new Vector2(
-                        Math.cos(angle) * speed,
-                        Math.sin(angle) * speed,
-                    ),
-                    radius: 20 + Math.random() * 15,
-                    rotSpeed: (Math.random() - 0.5) * 60,
+                    vel: Vector2.fromHeadingDegrees(headingDeg, speed),
+                    angle: headingDeg,
+                    radius: 18 + Math.random() * 4,
+                    speed,
+                    target: homingTarget,
                 }),
             );
         }
@@ -128,11 +129,11 @@ export class World extends EventTarget {
         for (const [a, b] of findCollisions(this)) {
             if (!a.alive || !b.alive) continue;
 
-            // Bullet vs Asteroid
-            if (a.kind === "bullet" && b.kind === "asteroid") {
-                this.#bulletHitAsteroid(a, b);
-            } else if (b.kind === "bullet" && a.kind === "asteroid") {
-                this.#bulletHitAsteroid(b, a);
+            // Bullet vs Shahed
+            if (a.kind === "bullet" && b.kind === "shahed") {
+                this.#bulletHitShahed(a, b);
+            } else if (b.kind === "bullet" && a.kind === "shahed") {
+                this.#bulletHitShahed(b, a);
             }
 
             // Bullet vs Ship
@@ -142,11 +143,11 @@ export class World extends EventTarget {
                 this.#bulletHitShip(b, a);
             }
 
-            // Ship vs Asteroid
-            else if (a.kind === "ship" && b.kind === "asteroid") {
-                this.#shipCrashAsteroid(a, b);
-            } else if (b.kind === "ship" && a.kind === "asteroid") {
-                this.#shipCrashAsteroid(b, a);
+            // Ship vs Shahed
+            else if (a.kind === "ship" && b.kind === "shahed") {
+                this.#shipCrashShahed(a, b);
+            } else if (b.kind === "ship" && a.kind === "shahed") {
+                this.#shipCrashShahed(b, a);
             }
 
             // Ship vs Pickup
@@ -158,27 +159,27 @@ export class World extends EventTarget {
         }
     }
 
-    #bulletHitAsteroid(bullet, asteroid) {
+    #bulletHitShahed(bullet, shahed) {
         bullet.alive = false;
-        asteroid.takeDamage(bullet.damage || 25);
+        shahed.takeDamage(bullet.damage || 25);
         this.dispatchEvent(
             new CustomEvent("hit", {
-                detail: { pos: bullet.pos, target: "asteroid" },
+                detail: { pos: bullet.pos, target: "shahed" },
             }),
         );
 
-        if (!asteroid.alive) {
+        if (!shahed.alive) {
             this.score += 100;
             this.dispatchEvent(
                 new CustomEvent("exploded", {
-                    detail: { pos: asteroid.pos, radius: 16, kind: "asteroid" },
+                    detail: { pos: shahed.pos, radius: 18, kind: "shahed" },
                 }),
             );
-            spawnExplosion(this, asteroid.pos, 16, "#94a3b8");
+            spawnExplosion(this, shahed.pos, 18, "#ef4444");
 
             // 35% chance to drop bonus Pickup on destruction
             if (Math.random() < 0.35) {
-                this.spawn(PickupFactory.createRandom(asteroid.pos));
+                this.spawn(PickupFactory.createRandom(shahed.pos));
             }
         } else {
             spawnExplosion(this, bullet.pos, 4, "#facc15");
@@ -217,9 +218,9 @@ export class World extends EventTarget {
         }
     }
 
-    #shipCrashAsteroid(ship, asteroid) {
+    #shipCrashShahed(ship, shahed) {
         ship.takeDamage(50);
-        asteroid.takeDamage(50);
+        shahed.takeDamage(50);
         this.dispatchEvent(
             new CustomEvent("hit", {
                 detail: {
@@ -248,14 +249,14 @@ export class World extends EventTarget {
             spawnExplosion(this, ship.pos, 8, "#f97316");
         }
 
-        if (!asteroid.alive) {
+        if (!shahed.alive) {
             this.score += 50;
             this.dispatchEvent(
                 new CustomEvent("exploded", {
-                    detail: { pos: asteroid.pos, radius: 16, kind: "asteroid" },
+                    detail: { pos: shahed.pos, radius: 18, kind: "shahed" },
                 }),
             );
-            spawnExplosion(this, asteroid.pos, 16, "#94a3b8");
+            spawnExplosion(this, shahed.pos, 18, "#ef4444");
         }
     }
 
@@ -282,7 +283,7 @@ export class World extends EventTarget {
 
         this.#shipRespawnTimer -= dt;
         if (this.#shipRespawnTimer <= 0) {
-            // Find safe spot (far from asteroids)
+            // Find safe spot (far from Shaheds)
             const safePos = this.#findSafePosition(width, height);
             this.#shipRef.respawn(safePos);
             spawnExplosion(this, safePos, 12, "#38bdf8");
@@ -302,7 +303,7 @@ export class World extends EventTarget {
         let bestPos = new Vector2(width / 2, height / 2);
         let maxMinDist = 0;
 
-        // Try 8 candidate points, pick one farthest from any asteroid
+        // Try 8 candidate points, pick one farthest from any Shahed drone
         for (let i = 0; i < 8; i++) {
             const candidate = new Vector2(
                 100 + Math.random() * (width - 200),
@@ -310,8 +311,8 @@ export class World extends EventTarget {
             );
 
             let minDist = Infinity;
-            for (const asteroid of this.ofKind("asteroid")) {
-                const dist = candidate.sub(asteroid.pos).length();
+            for (const shahed of this.ofKind("shahed")) {
+                const dist = candidate.sub(shahed.pos).length();
                 if (dist < minDist) minDist = dist;
             }
 

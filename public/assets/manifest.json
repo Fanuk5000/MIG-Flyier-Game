@@ -1,7 +1,7 @@
 {
     "sprites": {
         "ship": "/assets/sprites/mig29.png",
-        "asteroid": "/assets/sprites/asteroid.png",
+        "shahed": "/assets/sprites/shahed.png",
         "bullet": "/assets/sprites/bullet.png"
     },
     "audio": {
