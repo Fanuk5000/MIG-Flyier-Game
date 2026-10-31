@@ -29,6 +29,6 @@ export function setupCanvas(canvas) {
  * @param {number} height
  */
 export function clearCanvas(ctx, width, height) {
-    ctx.fillStyle = "#0b0f19";
+    ctx.fillStyle = "#94a6d4";
     ctx.fillRect(0, 0, width, height);
 }
