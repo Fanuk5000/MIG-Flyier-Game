@@ -61,11 +61,10 @@ world.spawn(ship);
 
 // 4. Spawns Shahed drones based on selected tactical sector
 function launchGame(roomConfig = {}) {
-    const isNight = Boolean(
-        roomConfig?.id?.includes("night") ||
-            roomConfig?.difficulty === "Extreme",
-    );
-    background.setTheme(isNight ? "night" : "day");
+    const theme =
+        roomConfig?.theme ||
+        (roomConfig?.id?.includes("night") ? "night" : "day");
+    background.setTheme(theme);
 
     const count = roomConfig?.shahedCount ?? 4;
     for (const drone of world.ofKind("shahed")) {
