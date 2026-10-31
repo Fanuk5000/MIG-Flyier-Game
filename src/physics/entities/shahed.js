@@ -102,9 +102,9 @@ export class Shahed extends Entity {
             const dh = 45;
             ctx.drawImage(activeImg, -dw / 2, -dh / 2, dw, dh);
             if (this.homing) {
-                ctx.strokeStyle = "#f87171";
+                // ctx.strokeStyle = "#f87171";
                 ctx.lineWidth = 1.5;
-                ctx.strokeRect(-dw / 2, -dh / 2, dw, dh);
+                // ctx.strokeRect(-dw / 2, -dh / 2, dw, dh);
             }
         } else {
             // Delta-wing silhouette (Shahed-136 loitering drone)
