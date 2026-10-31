@@ -12,6 +12,7 @@ import { Ship } from "./physics/entities/ship.js";
 import { HomingBehavior } from "./physics/homing.js";
 import { Vector2 } from "./physics/vector.js";
 import { World } from "./physics/world.js";
+import { ParallaxBackground } from "./render/background.js";
 import { clearCanvas, setupCanvas } from "./render/canvas.js";
 import { lerp, lerpAngle } from "./render/math.js";
 import { renderMIG } from "./render/vehicle.js";
@@ -38,6 +39,7 @@ const loadingState = {
 };
 const assets = {
     sprites: {},
+    backgrounds: {},
     audio: {},
 };
 
@@ -45,17 +47,26 @@ const canvas = document.querySelector("#game-canvas");
 let renderCtx = setupCanvas(canvas);
 const input = createInput();
 
-// 1. Initialize World entity manager
+// 1. Initialize Parallax Background
+const background = new ParallaxBackground(assets.backgrounds);
+
+// 2. Initialize World entity manager
 const world = new World();
 
-// 2. Spawn player ship
+// 3. Spawn player ship
 const ship = new Ship({
     pos: new Vector2(renderCtx.width / 2, renderCtx.height / 2),
 });
 world.spawn(ship);
 
-// 3. Spawns Shahed drones based on selected tactical sector
+// 4. Spawns Shahed drones based on selected tactical sector
 function launchGame(roomConfig = {}) {
+    const isNight = Boolean(
+        roomConfig?.id?.includes("night") ||
+            roomConfig?.difficulty === "Extreme",
+    );
+    background.setTheme(isNight ? "night" : "day");
+
     const count = roomConfig?.shahedCount ?? 4;
     for (const drone of world.ofKind("shahed")) {
         world.despawn(drone.id);
@@ -148,6 +159,9 @@ const loop = createLoop({
         // Step world simulation (updates all entities, applies arena boundaries, sweeps dead)
         world.step(dt, keys, renderCtx.width, renderCtx.height);
 
+        // Update Parallax Background relative to ship velocity
+        background.update(dt, ship.vel);
+
         // Clear edge-triggered keys after physics step
         input.clearJustPressed();
     },
@@ -172,6 +186,9 @@ const loop = createLoop({
             });
             return;
         }
+
+        // Render layered Parallax Cloud Background behind all entities
+        background.draw(ctx, renderCtx.width, renderCtx.height);
 
         // Render Pickups via entity method delegation
         for (const pickup of world.ofKind("pickup")) {
@@ -264,6 +281,8 @@ async function init() {
 
             if (registry.sprites)
                 Object.assign(assets.sprites, registry.sprites);
+            if (registry.backgrounds)
+                Object.assign(assets.backgrounds, registry.backgrounds);
             if (registry.audio) Object.assign(assets.audio, registry.audio);
         } catch (assetErr) {
             console.warn(

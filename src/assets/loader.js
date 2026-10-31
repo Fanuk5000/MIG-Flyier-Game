@@ -250,15 +250,20 @@ export async function loadAll(
     }
 
     const sprites = manifestData.sprites || {};
+    const backgrounds = manifestData.backgrounds || {};
     const audio = manifestData.audio || {};
     const arena = manifestData.arena || manifestData.config || {};
 
     const spriteEntries = Object.entries(sprites);
+    const backgroundEntries = Object.entries(backgrounds);
     const audioEntries = Object.entries(audio);
     const arenaEntries = Object.entries(arena);
 
     const totalCount =
-        spriteEntries.length + audioEntries.length + arenaEntries.length;
+        spriteEntries.length +
+        backgroundEntries.length +
+        audioEntries.length +
+        arenaEntries.length;
     let loadedCount = 0;
 
     if (typeof onProgress === "function") {
@@ -287,6 +292,23 @@ export async function loadAll(
                 .then((img) => {
                     notifyProgress();
                     return { category: "sprites", key, asset: img };
+                }),
+        );
+    }
+
+    for (const [key, url] of backgroundEntries) {
+        tasks.push(
+            withRetry((s) => loadImage(url, s), { signal })
+                .catch((err) => {
+                    console.warn(
+                        `[Asset Pipeline] Missing background for ${key} (${url}):`,
+                        err?.message || err,
+                    );
+                    return null;
+                })
+                .then((img) => {
+                    notifyProgress();
+                    return { category: "backgrounds", key, asset: img };
                 }),
         );
     }
@@ -352,6 +374,7 @@ export async function loadAll(
 
     const registry = {
         sprites: {},
+        backgrounds: {},
         audio: {},
         arena: {},
         config: {},
