@@ -4,6 +4,42 @@
  * forward flight cruise drift, and ship velocity reaction.
  */
 
+/**
+ * Pre-processes side-scroller cloud image onto an offscreen canvas
+ * with soft vertical alpha fade at top and bottom margins to eliminate straight line seams.
+ * @param {HTMLImageElement} img
+ * @param {number} [fadeRatio=0.18]
+ * @returns {HTMLCanvasElement|null}
+ */
+function createSeamlessVerticalCanvas(img, fadeRatio = 0.18) {
+    if (!img || !img.naturalWidth || !img.naturalHeight) return null;
+    if (typeof document === "undefined") return null;
+
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    // 1. Draw source cloud image
+    ctx.drawImage(img, 0, 0);
+
+    // 2. Alpha fade top and bottom edges into transparency
+    ctx.globalCompositeOperation = "destination-in";
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+    gradient.addColorStop(fadeRatio, "rgba(0, 0, 0, 1)");
+    gradient.addColorStop(1 - fadeRatio, "rgba(0, 0, 0, 1)");
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+
+    return canvas;
+}
+
 export class ParallaxBackground {
     /**
      * @param {Record<string, HTMLImageElement>} [assets={}] - Loaded background images
@@ -163,9 +199,10 @@ export class ParallaxBackground {
             const imgW = img.naturalWidth;
             const imgH = img.naturalHeight;
 
-            // Cache pattern on the layer
+            // Cache pattern on the layer using vertical alpha fade canvas to remove straight lines
             if (!layer.pattern || layer.patternSource !== img) {
-                layer.pattern = ctx.createPattern(img, "repeat");
+                const seamlessCanvas = createSeamlessVerticalCanvas(img);
+                layer.pattern = ctx.createPattern(seamlessCanvas || img, "repeat");
                 layer.patternSource = img;
             }
 
