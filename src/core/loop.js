@@ -53,11 +53,19 @@ export function createLoop({ simulate, render, step = FIXED_STEP } = {}) {
         // 2. Deposit elapsed time into the time bank
         accumulator += dt;
 
-        // 3. Fixed simulation phase (runs strictly at 60 Hz)
-        while (accumulator >= step) {
+        // 3. Fixed simulation phase (runs strictly at 60 Hz, capped to prevent spiral of death)
+        const MAX_SUB_STEPS = 4;
+        let subSteps = 0;
+        while (accumulator >= step && subSteps < MAX_SUB_STEPS) {
             if (simulate) simulate(step);
             accumulator -= step;
             stepCounter++;
+            subSteps++;
+        }
+
+        // Discard backlog if falling severely behind to protect framerate
+        if (accumulator >= step) {
+            accumulator = 0;
         }
 
         // reset step counter+fps every second to calculate correctly

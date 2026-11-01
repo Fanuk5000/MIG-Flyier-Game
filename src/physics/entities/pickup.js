@@ -10,22 +10,30 @@ export class Pickup extends Entity {
      * @param {Vector2} options.pos
      * @param {string} [options.type="shield"] - "shield" or "repair"
      * @param {number} [options.radius=12]
+     * @param {Function} [options.onCollect] - Strategy callback: (collector: Entity) => void
      */
-    constructor({ pos, type = "shield", radius = 12 } = {}) {
+    constructor({ pos, type = "shield", radius = 12, onCollect } = {}) {
         super({ pos, radius, kind: "pickup" });
         this.type = type;
+        this.onCollect = onCollect;
         this.pulsePhase = Math.random() * Math.PI * 2;
     }
 
     /**
-     * Applies item effect to ship.
-     * @param {Object} ship
+     * Applies item effect to collector.
+     * @param {Object} target
      */
-    applyTo(ship) {
+    applyTo(target) {
+        if (typeof this.onCollect === "function") {
+            this.onCollect(target);
+            return;
+        }
+
+        // Fallback for backwards-compatibility
         if (this.type === "shield") {
-            ship.addShield(50);
+            target.addShield?.(50);
         } else if (this.type === "repair") {
-            ship.heal(35);
+            target.heal?.(35);
         }
     }
 

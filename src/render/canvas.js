@@ -3,8 +3,8 @@
  * @param {HTMLCanvasElement} canvas
  */
 export function setupCanvas(canvas) {
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const dpr = 1.5;
     const width = window.innerWidth;
     const height = window.innerHeight;
 
@@ -23,46 +23,12 @@ export function setupCanvas(canvas) {
 }
 
 /**
- * Clear the entire canvas frame.
+ * Clear the entire canvas frame with opaque space background.
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} width
  * @param {number} height
  */
 export function clearCanvas(ctx, width, height) {
-    ctx.clearRect(0, 0, width, height);
-}
-
-export function drawHUD(ctx, metrics) {
-    const { stepsPerSec, fps, frameTimeMs, mode, score, hp, shield } = metrics;
-    ctx.save();
-    ctx.font = "16px monospace";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(`Steps/sec: ${stepsPerSec.toFixed(1)}`, 10, 20);
-    ctx.fillText(`FPS: ${fps.toFixed(1)}`, 10, 40);
-    ctx.fillText(`Frame time: ${frameTimeMs.toFixed(2)} ms`, 10, 60);
-
-    let hudY = 85;
-    if (score !== undefined) {
-        ctx.fillStyle = "#facc15";
-        ctx.fillText(`Score: ${score}`, 10, hudY);
-        hudY += 20;
-    }
-
-    if (hp !== undefined) {
-        ctx.fillStyle = hp > 30 ? "#4ade80" : "#ef4444";
-        ctx.fillText(`HP: ${hp}`, 10, hudY);
-        hudY += 20;
-    }
-
-    if (shield !== undefined) {
-        ctx.fillStyle = "#38bdf8";
-        ctx.fillText(`Shield: ${shield}`, 10, hudY);
-        hudY += 20;
-    }
-
-    if (mode) {
-        ctx.fillStyle = "#38bdf8";
-        ctx.fillText(`Mode: ${mode}`, 10, hudY);
-    }
-    ctx.restore();
+    ctx.fillStyle = "#94a6d4";
+    ctx.fillRect(0, 0, width, height);
 }

@@ -1,66 +1,117 @@
+import { loadAll } from "./assets/index.js";
+import {
+    bindEvents,
+    getAudioContext,
+    setBuffers,
+    unlockAudio,
+} from "./audio/index.js";
 import { createInput } from "./core/input.js";
 import { createLoop } from "./core/loop.js";
-import { Pickup } from "./physics/entities/pickup.js";
+import { PickupFactory } from "./factories/pickup.js";
 import { Ship } from "./physics/entities/ship.js";
 import { HomingBehavior } from "./physics/homing.js";
 import { Vector2 } from "./physics/vector.js";
 import { World } from "./physics/world.js";
-import { clearCanvas, drawHUD, setupCanvas } from "./render/canvas.js";
+import { ParallaxBackground } from "./render/background.js";
+import { clearCanvas, setupCanvas } from "./render/canvas.js";
 import { lerp, lerpAngle } from "./render/math.js";
 import { renderMIG } from "./render/vehicle.js";
 import "./style.css";
+import {
+    createHUD,
+    createLobbyView,
+    drawLoadingScreen,
+    Lobby,
+} from "./ui/index.js";
+
+export const GameState = Object.freeze({
+    LOADING: "LOADING",
+    LOBBY: "LOBBY",
+    PLAYING: "PLAYING",
+    GAME_OVER: "GAME_OVER",
+});
+
+let currentState = GameState.LOADING;
+const loadingState = {
+    progress: 0,
+    status: "Initializing...",
+    error: null,
+};
+const assets = {
+    sprites: {},
+    backgrounds: {},
+    audio: {},
+};
 
 const canvas = document.querySelector("#game-canvas");
 let renderCtx = setupCanvas(canvas);
 const input = createInput();
 
-// 1. Initialize World entity manager and pregenerate obstacles
-const world = new World();
-world.pregenerate(renderCtx.width, renderCtx.height, 4);
+// 1. Initialize Parallax Background
+const background = new ParallaxBackground(assets.backgrounds);
 
-// 2. Spawn player ship
+// 2. Initialize World entity manager
+const world = new World();
+
+// 3. Spawn player ship
 const ship = new Ship({
     pos: new Vector2(renderCtx.width / 2, renderCtx.height / 2),
 });
 world.spawn(ship);
 
-// 3. Spawn initial test pickups (shield & repair)
-world.spawn(
-    new Pickup({
-        pos: new Vector2(renderCtx.width / 2 - 80, renderCtx.height / 2 - 60),
-        type: "shield",
-    }),
-);
-world.spawn(
-    new Pickup({
-        pos: new Vector2(renderCtx.width / 2 + 80, renderCtx.height / 2 - 60),
-        type: "repair",
-    }),
-);
+// 4. Spawns Shahed drones based on selected tactical sector
+function launchGame(roomConfig = {}) {
+    const theme =
+        roomConfig?.theme ||
+        (roomConfig?.id?.includes("night") ? "night" : "day");
+    background.setTheme(theme);
 
-// 4. Attach gentle Homing component to one asteroid tracking player ship
-const initialAsteroid = Array.from(world.ofKind("asteroid"))[0];
-if (initialAsteroid) {
-    initialAsteroid.homing = new HomingBehavior({
-        target: ship,
-        turnRate: 25,
-        minDistance: 60,
-    });
+    const count = roomConfig?.shahedCount ?? 4;
+    for (const drone of world.ofKind("shahed")) {
+        world.despawn(drone.id);
+    }
+    world.pregenerate(renderCtx.width, renderCtx.height, count, ship);
+    currentState = GameState.PLAYING;
 }
+
+// 4. Initialize Lobby state controller and DOM overlay
+const lobby = new Lobby({ endpoint: "/api/rooms.json" });
+const lobbyView = createLobbyView(lobby, {
+    onLaunch: async (detail) => {
+        await unlockAudio();
+        launchGame(detail?.room);
+    },
+});
+lobbyView.hide(); // Hidden during initial asset load screen
+
+// 5. Initialize decoupled event-driven HUD
+const hud = createHUD(world, ship);
+
+// 6. Spawn initial test pickups (shield & repair)
+world.spawn(
+    PickupFactory.createShield(
+        new Vector2(renderCtx.width / 2 - 80, renderCtx.height / 2 - 60),
+    ),
+);
+world.spawn(
+    PickupFactory.createRepair(
+        new Vector2(renderCtx.width / 2 + 80, renderCtx.height / 2 - 60),
+    ),
+);
 
 // State for render interpolation
 let prevShipState = { x: ship.x, y: ship.y, angle: ship.angle };
 
-// Find nearest asteroid for player homing bullets
-function findNearestAsteroid(origin) {
+// Find nearest Shahed drone for player homing bullets
+function findNearestShahed(origin) {
     let nearest = null;
     let minDist = 350; // acquisition radius
 
-    for (const asteroid of world.ofKind("asteroid")) {
-        const dist = asteroid.pos.sub(origin).length();
+    for (const drone of world.ofKind("shahed")) {
+        const dist = drone.pos.sub(origin).length();
         if (dist < minDist) {
             minDist = dist;
-            nearest = asteroid;
+            nearest = drone;
         }
     }
     return nearest;
@@ -71,8 +122,14 @@ function handleShooting(keys) {
     if (keys.justPressed.shoot && ship.alive) {
         const bullet = ship.fire();
 
-        // Attach gentle homing component to bullet if an asteroid is nearby
-        const target = findNearestAsteroid(bullet.pos);
+        world.dispatchEvent(
+            new CustomEvent("fired", {
+                detail: { pos: bullet.pos, kind: "bullet" },
+            }),
+        );
+
+        // Attach gentle homing component to bullet if a Shahed is nearby
+        const target = findNearestShahed(bullet.pos);
         if (target) {
             bullet.homing = new HomingBehavior({
                 target,
@@ -87,6 +144,10 @@ function handleShooting(keys) {
 
 const loop = createLoop({
     simulate(dt) {
+        if (currentState !== GameState.PLAYING) {
+            return;
+        }
+
         const keys = input.getState();
 
         prevShipState = { x: ship.x, y: ship.y, angle: ship.angle };
@@ -97,6 +158,9 @@ const loop = createLoop({
         // Step world simulation (updates all entities, applies arena boundaries, sweeps dead)
         world.step(dt, keys, renderCtx.width, renderCtx.height);
 
+        // Update Parallax Background relative to ship velocity
+        background.update(dt, ship.vel);
+
         // Clear edge-triggered keys after physics step
         input.clearJustPressed();
     },
@@ -104,19 +168,50 @@ const loop = createLoop({
         clearCanvas(renderCtx.ctx, renderCtx.width, renderCtx.height);
         const ctx = renderCtx.ctx;
 
+        if (currentState === GameState.LOADING) {
+            drawLoadingScreen(
+                ctx,
+                renderCtx.width,
+                renderCtx.height,
+                loadingState,
+            );
+            return;
+        }
+
+        if (currentState === GameState.LOBBY) {
+            drawLoadingScreen(ctx, renderCtx.width, renderCtx.height, {
+                progress: 1,
+                status: "Lobby active — select room...",
+            });
+            return;
+        }
+
+        // Render layered Parallax Cloud Background behind all entities
+        background.draw(ctx, renderCtx.width, renderCtx.height);
+
         // Render Pickups via entity method delegation
         for (const pickup of world.ofKind("pickup")) {
             pickup.draw(ctx);
         }
 
-        // Render Asteroids via entity method delegation
-        for (const asteroid of world.ofKind("asteroid")) {
-            asteroid.draw(ctx);
+        // 6-frame animation queue for Shahed drones: static -> 1 -> 2 -> 3 -> 4 -> 5
+        const shahedFrames = [
+            assets.sprites.shahedStatic,
+            assets.sprites.shahed1,
+            assets.sprites.shahed2,
+            assets.sprites.shahed3,
+            assets.sprites.shahed4,
+            assets.sprites.shahed5,
+        ].filter(Boolean);
+
+        // Render Shahed drones via entity method delegation
+        for (const shahed of world.ofKind("shahed")) {
+            shahed.draw(ctx, shahedFrames);
         }
 
         // Render Bullets via entity method delegation
         for (const bullet of world.ofKind("bullet")) {
-            bullet.draw(ctx);
+            bullet.draw(ctx, assets.sprites.bullet);
         }
 
         // Render Particles (Explosions) via entity method delegation
@@ -134,7 +229,10 @@ const loop = createLoop({
                 alpha,
             );
 
-            renderMIG(ctx, renderX, renderY, renderAngle, ship.thrust);
+            renderMIG(ctx, renderX, renderY, renderAngle, ship.thrust, {
+                static: assets.sprites.migStatic,
+                fly: assets.sprites.migFly,
+            });
 
             // Render protective energy shield bubble when active
             if (ship.shield > 0) {
@@ -148,13 +246,8 @@ const loop = createLoop({
             }
         }
 
-        // Render HUD with HP, Shield, and Score
-        drawHUD(ctx, {
-            ...metrics,
-            score: world.score,
-            hp: ship.hp,
-            shield: ship.shield,
-        });
+        // Render decoupled event-driven HUD overlay
+        hud.draw(ctx, metrics);
     },
 });
 
@@ -165,3 +258,57 @@ loop.start();
 window.addEventListener("resize", () => {
     renderCtx = setupCanvas(canvas);
 });
+
+// Async bootstrap lifecycle
+async function init() {
+    try {
+        currentState = GameState.LOADING;
+        loadingState.status = "Loading asset manifest...";
+        loadingState.progress = 0;
+
+        const audioCtx = getAudioContext();
+
+        // 1. Concurrent asset loading with live progress tracking
+        try {
+            const registry = await loadAll("/assets/manifest.json", {
+                audioCtx,
+                onProgress: (ratio) => {
+                    loadingState.progress = ratio;
+                    loadingState.status = `Loading assets (${Math.round(ratio * 100)}%)...`;
+                },
+            });
+
+            if (registry.sprites)
+                Object.assign(assets.sprites, registry.sprites);
+            if (registry.backgrounds)
+                Object.assign(assets.backgrounds, registry.backgrounds);
+            if (registry.audio) Object.assign(assets.audio, registry.audio);
+        } catch (assetErr) {
+            console.warn(
+                "Asset load warning (using vector fallbacks):",
+                assetErr,
+            );
+            loadingState.progress = 1.0;
+        }
+
+        // 2. Register decoded audio buffers & bind simulation EventTarget bus
+        setBuffers(assets.audio);
+        bindEvents(world);
+
+        loadingState.progress = 1.0;
+        loadingState.status = "Ready";
+
+        // Small pause to see completed progress bar
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        // 3. Transition to Lobby phase
+        currentState = GameState.LOBBY;
+        lobbyView.show();
+        lobby.startAutoRefresh(4000);
+    } catch (err) {
+        loadingState.error = err.message || "Failed to initialize game";
+        console.error("Initialization error:", err);
+    }
+}
+
+init();

@@ -41,17 +41,29 @@ export class Bullet extends Entity {
     }
 
     /**
-     * Renders elongated yellow energy projectile aligned with flight angle.
+     * Renders bullet using sprite slice or fallback vector energy beam.
      * @param {CanvasRenderingContext2D} ctx
+     * @param {Object} [sprite=null]
      */
-    draw(ctx) {
+    draw(ctx, sprite = null) {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate((this.angle * Math.PI) / 180);
-        ctx.fillStyle = this.homing ? "#38bdf8" : "#facc15"; // Cyan glow if homing
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 2.5, 7, 0, 0, Math.PI * 2);
-        ctx.fill();
+
+        if (sprite?.image) {
+            const { image, sx = 0, sy = 0 } = sprite;
+            const sw = sprite.sw || image.width;
+            const sh = sprite.sh || image.height;
+            const dw = sprite.width || 8;
+            const dh = sprite.height || 16;
+            ctx.drawImage(image, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+        } else {
+            ctx.fillStyle = this.homing ? "#38bdf8" : "#facc15"; // Cyan glow if homing
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 2.5, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         ctx.restore();
     }
 }
